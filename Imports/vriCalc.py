@@ -39,7 +39,6 @@
 #                                                                             #
 #=============================================================================#
 
-import sys
 import re
 import glob
 from collections import OrderedDict as od
@@ -257,11 +256,11 @@ class observationManager:
         
         # Print the input image parameters
         self.nY, self.nX = self.modelImgArr.shape
-        print "\n> Input image parameters:"
-        print "\tPixel scale = %.3f arcsec " % pixScale_asec
-        print "\tImage size = %d x %d pixels [%.1f x %.1f arcsec]" % \
+        print("\n> Input image parameters:")
+        print("\tPixel scale = %.3f arcsec " % pixScale_asec)
+        print("\tImage size = %d x %d pixels [%.1f x %.1f arcsec]" % \
             (self.nX, self.nY,
-             self.nX*pixScale_asec, self.nY*self.pixScale_asec)
+             self.nX*pixScale_asec, self.nY*self.pixScale_asec))
         
     def get_model_image(self, retType="array"):
         """Return the model as a numpy array."""
@@ -375,8 +374,8 @@ class antArray:
         self.diameter_m = float(keyValDict.get("diameter_m", 22.0))
         self.eastArr_m = np.array(eastLst, dtype="f4")
         self.northArr_m = np.array(northLst, dtype="f4")
-        self.nAnt = len(self.eastArr_m)
-        self.nBase = self.nAnt*(self.nAnt-1)/2
+        self.nAnt = int(len(self.eastArr_m))
+        self.nBase = int(self.nAnt*(self.nAnt-1)/2)
 
         # Calculate the antenna coordinates in Earth-centred coordinate frame
         # Technically, we should have terms for the distance from the

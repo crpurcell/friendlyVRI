@@ -674,5 +674,8 @@ class StatusFrame(tk.Frame):
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()
+    default_font = tkFont.nametofont("TkDefaultFont")
+    default_font.configure(size=10)
+    root.option_add("*Font", default_font)
     app = App(root)
     

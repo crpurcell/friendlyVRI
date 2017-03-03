@@ -37,7 +37,8 @@
 #=============================================================================#
 
 import numpy as np
-import StringIO
+#import StringIO
+from io import StringIO
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -70,7 +71,7 @@ def plot_uvcov_ax(ax, arrsSelected):
 def plot_image_ax(ax, imgArr):
     
     ax.cla()
-    ax.imshow(np.abs(imgArr), cmap=plt.cm.inferno,
+    ax.imshow(np.abs(imgArr), cmap=plt.cm.cubehelix,
               interpolation="nearest", origin="lower")
     #ax.set_title("Model Image")
     ax.set_xlabel(u"X (pixels)")
@@ -81,7 +82,7 @@ def plot_image_ax(ax, imgArr):
 def plot_fft_ax(ax, imgArr, extent=[]):
     
     ax.cla()
-    ax.imshow(np.abs(imgArr), norm=LogNorm(), cmap=plt.cm.inferno,
+    ax.imshow(np.abs(imgArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
               interpolation="nearest", origin="lower")
     #ax.set_title("FFT Image")
     ax.set_xlabel(u"u (kilo-lambda)")

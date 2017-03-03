@@ -476,8 +476,6 @@ class ScatterPlot(tk.Frame):
         def calc_tick_vals(xMin, xMax, nTicks):
             rng = xMax-xMin
             pwr = np.floor(np.log10(rng))-1
-            print "RNG:", xMin, xMax
-            print "PWR", pwr
             d = np.round(rng/(float(nTicks)*10.0**pwr)) * 10.0**pwr
             start = np.round(xMin/10.0**pwr) * 10.0**pwr
             ticks = []
@@ -580,10 +578,12 @@ class ScatterPlot(tk.Frame):
         
     def set_ylabel(self, label=""):
         """Label the Y-axis"""
-        
-        self.canvas.create_text(self.axPad[0]/4,
-                               self.axPad[1] + (self.yCanMin-self.yCanMax)/2,
-                               text=label, fill='red', anchor=tk.N, angle=90)
+        try:
+            self.canvas.create_text(self.axPad[0]/4,
+                            self.axPad[1] + (self.yCanMin-self.yCanMax)/2,
+                            text=label, fill='red', anchor=tk.N, angle=90.0)
+        except Exception:
+            pass
     
     def load_data(self, xArr, yArr):
         """Load the xy data arrays and draw the data points"""
