@@ -91,3 +91,6 @@ ENV/
 
 # Bytecompiled python
 *.pyc
+
+# Emacs twiddle files
+*~

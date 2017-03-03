@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for the virtual interferometer application.              #
 #                                                                             #
-# MODIFIED: 01-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 03-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -38,10 +38,13 @@
 # DEALINGS IN THE SOFTWARE.                                                   #
 #                                                                             #
 #=============================================================================#
+
+import sys
 import re
 import glob
 from collections import OrderedDict as od
 import numpy as np
+from PIL import Image
 
 # Speed of light
 C = 2.99792458e8
@@ -73,15 +76,30 @@ class observationManager:
 
         # Observing parameters        
         self.freq_Hz = 1420e6
+        self.lambda_m = 1420e6
         self.sampRate_s = 60.0
         self.dec_deg = 20.0
         
         # Model image and parameters
-        self.modelImg = None
-        self.modelFFT = None
+        self.modelImgArr = None
+        self.nX = None
+        self.nY = None
         self.pixScale_asec = None
 
+        # Model FFT image and parameters
+        self.modelFFTarr = None
+        self.fftScale_lam = None
+        self.pixScaleFFTX_lam = None
+        self.pixScaleFFTY_lam = None
+        
         # uv-mask and beam
+        self.uvMaskArr = None
+        self.beamArr = None
+        
+        # Observed FFT and final image
+        self.obsFFTarr = None
+        self.obsImgArr = None
+
         
         # Read the array definition files from the array directory
         self._load_all_arrays(arrayDir)
@@ -144,7 +162,7 @@ class observationManager:
         """Calculate the uv-coverage for each of the selected array configs."""
 
         # Unit conversions of common parameters
-        lambda_m = C/self.freq_Hz
+        self.lambda_m = C/self.freq_Hz
         dec_rad = np.radians(self.dec_deg)
         sampRate_deg = self.sampRate_s * 15.0 / 3600.0
         sampRate_hr = self.sampRate_s / 3600.0
@@ -166,18 +184,41 @@ class observationManager:
             for i in range(ar.nBase):
                 u_m[i, :] = (ar.Bx_m[i] * np.sin(haArr_rad) + 
                              ar.By_m[i] * np.cos(haArr_rad))
-                v_m[i, :] = (-ar.Bx_m[i] * np.sin(dec_rad) * np.cos(haArr_rad) +
-                             ar.By_m[i] * np.sin(dec_rad) * np.sin(haArr_rad) +
+                v_m[i, :] = (-ar.Bx_m[i] * np.sin(dec_rad) *np.cos(haArr_rad) +
+                             ar.By_m[i] * np.sin(dec_rad) *np.sin(haArr_rad) +
                              ar.Bz_m[i] * np.cos(dec_rad))
-            e["uArr_lam"] = u_m/lambda_m
-            e["vArr_lam"] = v_m/lambda_m
+            e["uArr_lam"] = u_m/self.lambda_m
+            e["vArr_lam"] = v_m/self.lambda_m
 
     def grid_uvcoverage(self):
         """Grid the uv-coverage to use as a mask for the Fourier domain image
-        of the input model."""
-        
-        pass
+        of the input model."""        
 
+        # Grid the uv-coverage
+        self.uvMaskArr = np.zeros(self.modelFFTarr.shape, dtype=np.int32)
+        for e in self.arrsSelected:
+            u_lam = e["uArr_lam"]
+            v_lam = e["vArr_lam"]
+            
+            u_pix = (u_lam.flatten()+self.fftScale_lam)/self.pixScaleFFTX_lam
+            v_pix = (v_lam.flatten()+self.fftScale_lam)/self.pixScaleFFTY_lam
+            u2_pix = (-u_lam.flatten()+self.fftScale_lam)/self.pixScaleFFTX_lam
+            v2_pix = (-v_lam.flatten()+self.fftScale_lam)/self.pixScaleFFTY_lam
+
+            for i in range(len(u_pix)):
+                try:
+                    self.uvMaskArr[int(v_pix[i]), int(u_pix[i])] = 1
+                    self.uvMaskArr[int(v2_pix[i]), int(u2_pix[i])] = 1
+                except Exception:
+                    pass
+
+        # Apply the mask to the model FFT
+        self.obsFFTarr = self.modelFFTarr.copy()*self.uvMaskArr
+                      
+    def calc_beam(self):
+        self.beamArr = np.fft.ifft2(self.uvMaskArr)
+        self.beamArr = np.fft.ifftshift(self.beamArr)
+        
     def get_ant_coordinates(self, row):
         """Return the antenna coordinates of the available array in the
         requested row number."""
@@ -188,7 +229,7 @@ class observationManager:
 
         return x, y
 
-    def get_elevation(self):
+    def get_elevation_curves(self):
         """Return the elevation curves of each selected telescope for the 
         current source declination."""
         
@@ -206,6 +247,45 @@ class observationManager:
 #
 #        return haArr_rad, elLst
 
+    def load_model_image(self, modelFile, pixScale_asec=0.5):
+        """Load the model image."""
+
+        # Open the image, convert to luminance and then a numpy array
+        imgPIL = Image.open(modelFile).convert("L")
+        self.modelImgArr = np.flipud(np.asarray(imgPIL))
+        self.pixScale_asec = pixScale_asec
+        
+        # Print the input image parameters
+        self.nY, self.nX = self.modelImgArr.shape
+        print "\n> Input image parameters:"
+        print "\tPixel scale = %.3f arcsec " % pixScale_asec
+        print "\tImage size = %d x %d pixels [%.1f x %.1f arcsec]" % \
+            (self.nX, self.nY,
+             self.nX*pixScale_asec, self.nY*self.pixScale_asec)
+        
+    def get_model_image(self, retType="array"):
+        """Return the model as a numpy array."""
+        
+        return self.modelImgArr
+
+    def invert_model(self):
+        
+        # Calculate the 2D FFT
+        self.modelFFTarr = np.fft.fft2(self.modelImgArr)
+        self.modelFFTarr = np.fft.fftshift(self.modelFFTarr)
+
+        # Calculate the scaling factors for the FFT image
+        # The shape of FFT array is same as the input image
+        pixScaleImg_lam = np.radians(self.pixScale_asec/3600.0)
+        self.fftScale_lam = 1.0/pixScaleImg_lam
+        self.pixScaleFFTX_lam = 2.0*self.fftScale_lam/self.nX
+        self.pixScaleFFTY_lam = 2.0*self.fftScale_lam/self.nY
+        
+
+    def invert_observation(self):
+        self.obsFFTarr = np.fft.ifftshift(self.obsFFTarr)
+        self.obsImgArr = np.fft.ifft2(self.obsFFTarr)
+        
 
 #-----------------------------------------------------------------------------#
 class antArray:
@@ -236,7 +316,10 @@ class antArray:
         self.lBase_m = None
         
         # Read and parse the array file
-        self._load_arrayfile(arrayFile)
+        try:
+            self._load_arrayfile(arrayFile)
+        except Exception:
+            pass
 
         # Calculate the baseline vector components
         self._calc_baselines()
@@ -244,7 +327,7 @@ class antArray:
     def _load_arrayfile(self, arrayFile):
         """Read and parse the ASCII file defining the array parameters and 
         antenna coordinates."""
-
+        
         # Temporary variables
         keyValDict = {}
         eastLst = []

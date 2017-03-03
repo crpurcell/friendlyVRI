@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 28-Feb-2017 by C. Purcell                                         #
+# MODIFIED: 03-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -422,10 +422,18 @@ class ScatterPlot(tk.Frame):
         
         xMin, xMax = (np.min(self.xArr), np.max(self.xArr))
         yMin, yMax = (np.min(self.yArr), np.max(self.yArr))
+        if xMin==xMax:
+            xMin = yMin
+            xMax = yMax
+        if yMin==yMax:
+            yMin = xMin
+            yMax = xMax
         self.xPlotMin = xMin - (xMax - xMin) * self.padF
         self.xPlotMax = xMax + (xMax - xMin) * self.padF
         self.yPlotMin = yMin - (yMax - yMin) * self.padF
         self.yPlotMax = yMax + (yMax - yMin) * self.padF
+        
+        
         self.xCanArr, self.yCanArr = self._world2canvas(self.xArr, self.yArr)
 
     def _world2canvas(self, x=None, y=None):
@@ -465,9 +473,11 @@ class ScatterPlot(tk.Frame):
         # and the 10-power of the axis range. The number of ticks will be
         # likely different than requested due to the rounding, but the
         # labels will be numbers with finite significant figures.
-        def calc_tick_vals(xMin, xMax, nTicks):                        
+        def calc_tick_vals(xMin, xMax, nTicks):
             rng = xMax-xMin
             pwr = np.floor(np.log10(rng))-1
+            print "RNG:", xMin, xMax
+            print "PWR", pwr
             d = np.round(rng/(float(nTicks)*10.0**pwr)) * 10.0**pwr
             start = np.round(xMin/10.0**pwr) * 10.0**pwr
             ticks = []
