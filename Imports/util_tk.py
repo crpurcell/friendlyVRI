@@ -582,12 +582,14 @@ class ScatterPlot(tk.Frame):
         zero = np.array([0.0, 0.0])
         x, y = self._world2canvas(zero[0], zero[1])
         if x>self.xCanMin and x<self.xCanMax:
-            self.canvas.create_line(x, self.yCanMin, x, self.yCanMax,
-                                    width=1, fill="LightGreen")
+            item = self.canvas.create_line(x, self.yCanMin, x, self.yCanMax,
+                                           width=1, fill="LightGreen")
+            self.canvas.tag_lower(item)
         if y>self.yCanMax and y<self.yCanMin:
-            self.canvas.create_line(self.xCanMin, y, self.xCanMax, y,
-                                    width=1, fill="LightGreen",)
-            
+            item = self.canvas.create_line(self.xCanMin, y, self.xCanMax, y,
+                                           width=1, fill="LightGreen")
+            self.canvas.tag_lower(item)
+        
     def set_xlabel(self, label=""):
         """Label the X-axis"""
         
