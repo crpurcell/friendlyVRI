@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 03-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 05-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -350,9 +350,10 @@ class ScrolledCanvasFrame(tk.Frame):
 #-----------------------------------------------------------------------------#
 class ScatterPlot(tk.Frame):
     """Canvas configured as a simple scatterplot widget."""
-
-    def __init__(self, parent, width=500, height=500, axPad=(100,25),
-                 tickLen=10, nXticks=5, nYticks=5, padF=0.05, *args, **kw):
+    #                                                left, right, bottom, top
+    def __init__(self, parent, width=500, height=500, axPad=(100,25,70,25),
+                 tickLen=10, nXticks=3, nYticks=3, padF=0.05, aspect="free",
+                 *args, **kw):
         tk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
@@ -384,6 +385,7 @@ class ScatterPlot(tk.Frame):
         self.width = width
         self.height = height
         self.axPad = axPad
+        self.aspect = aspect
 
         # Tickmarks and labels
         self.xTicks = None
@@ -405,8 +407,8 @@ class ScatterPlot(tk.Frame):
         self.canvas.delete("all")
         self.xCanMin = self.axPad[0]
         self.xCanMax = self.width - self.axPad[1]
-        self.yCanMin = self.height - self.axPad[0]
-        self.yCanMax = self.axPad[1]
+        self.yCanMin = self.height - self.axPad[2]
+        self.yCanMax = self.axPad[3]
         self.canvas.create_line(self.xCanMin, self.yCanMin,
                                 self.xCanMin, self.yCanMax, width=1)
         self.canvas.create_line(self.xCanMin, self.yCanMin,
@@ -422,17 +424,22 @@ class ScatterPlot(tk.Frame):
         
         xMin, xMax = (np.min(self.xArr), np.max(self.xArr))
         yMin, yMax = (np.min(self.yArr), np.max(self.yArr))
+        xRng = (xMax - xMin)
+        yRng = (yMax - yMin)
+        if self.aspect=="equal":
+            rng = max(xRng, yRng)
+            xRng = rng
+            yRng = rng
         if xMin==xMax:
             xMin = yMin
             xMax = yMax
         if yMin==yMax:
             yMin = xMin
             yMax = xMax
-        self.xPlotMin = xMin - (xMax - xMin) * self.padF
-        self.xPlotMax = xMax + (xMax - xMin) * self.padF
-        self.yPlotMin = yMin - (yMax - yMin) * self.padF
-        self.yPlotMax = yMax + (yMax - yMin) * self.padF
-        
+        self.xPlotMin = xMin - xRng * self.padF
+        self.xPlotMax = xMax + xRng * self.padF
+        self.yPlotMin = yMin - yRng * self.padF
+        self.yPlotMax = yMax + yRng * self.padF
         
         self.xCanArr, self.yCanArr = self._world2canvas(self.xArr, self.yArr)
 
@@ -505,8 +512,8 @@ class ScatterPlot(tk.Frame):
             self.canvas.create_line(self.xTicks[i],
                                     self.yCanMin,
                                     self.xTicks[i],
-                                    self.yCanMin+self.tickLen,
-                                    width=2)
+                                    self.yCanMin-self.tickLen,
+                                    width=1)
             self.canvas.create_text(self.xTicks[i],
                                     self.yCanMin+2*self.tickLen,
                                     text='{}'.format( self.xTickVals[i]))
@@ -515,9 +522,9 @@ class ScatterPlot(tk.Frame):
         for i in range(len(self.yTicks)):
             self.canvas.create_line(self.xCanMin,
                                     self.yTicks[i],
-                                    self.xCanMin-self.tickLen,
+                                    self.xCanMin+self.tickLen,
                                     self.yTicks[i],
-                                    width=2)
+                                    width=1)
             self.canvas.create_text(self.xCanMin-2*self.tickLen,
                                     self.yTicks[i],
                                     text='{}'.format(self.yTickVals[i]),
@@ -573,14 +580,14 @@ class ScatterPlot(tk.Frame):
         """Label the X-axis"""
         
         self.canvas.create_text(self.axPad[0]+(self.xCanMax-self.xCanMin)/2,
-                                self.yCanMin+self.axPad[0]/1.5,
+                                self.yCanMin+self.axPad[2]/1.5,
                                 text=label, fill='red')
         
     def set_ylabel(self, label=""):
         """Label the Y-axis"""
         try:
-            self.canvas.create_text(self.axPad[0]/4,
-                            self.axPad[1] + (self.yCanMin-self.yCanMax)/2,
+            self.canvas.create_text(self.axPad[2]/4,
+                            self.axPad[3] + (self.yCanMin-self.yCanMax)/2,
                             text=label, fill='red', anchor=tk.N, angle=90.0)
         except Exception:
             pass
@@ -825,8 +832,8 @@ class DoubleScale(tk.Frame):
             if yLab is not None and valLst is not None:
                 self.canvas.create_text(xLst[i],
                                         yLab,
-                                        text='{}'.format(valLst[i]))            
-            
+                                        text='{}'.format(valLst[i]))
+    
     def _world2canvas(self, x):
         """Convert an array of world coordinates to canvas coordinates"""
 

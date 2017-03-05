@@ -340,9 +340,10 @@ class ArrayChooserFrame(tk.Frame):
         self.chooseFrm.grid(column=0, row=0, padx=5, pady=5, rowspan=4,
                             sticky="NSEW")
         
-        # Canvas illustrating the antenna positions of selected array
-        self.antPosPlot = ScatterPlot(self.chooseFrm, width=400, height=400,
-                                      axPad=(75,25))
+        # Canvas illustrating the antenna positions of selected array.
+        # Width, height & axis padding are chosen to make the plot square.
+        self.antPosPlot = ScatterPlot(self.chooseFrm, width=430, height=400,
+                                      axPad=(100,25,70,25), aspect="equal")
         self.antPosPlot.grid(column=0, row=0, padx=5, pady=5)
         
         # Listbox showing the available array configurations

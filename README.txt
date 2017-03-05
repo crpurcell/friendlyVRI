@@ -16,9 +16,9 @@ portability.
 TODO:
 
 * ScatterPlot widget:
+  - equalise X & y scales
   - Format of text labels and margins
   - Alternative vertical text for buggy python3
-  - equalise X & y scales
 * TreeTables:
   - Format of column spacing & text.
 * DoubleSlider:
