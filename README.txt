@@ -16,8 +16,8 @@ portability.
 TODO:
 
 * ScatterPlot widget:
-  - equalise X & y scales
-  - Format of text labels and margins
+DONE  - equalise X & y scales
+DONE  - Format of text labels and margins
   - Alternative vertical text for buggy python3
 * TreeTables:
   - Format of column spacing & text.

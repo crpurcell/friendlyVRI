@@ -392,6 +392,8 @@ class ScatterPlot(tk.Frame):
         self.yTicks = None
         self.xTickVals = None
         self.xTickVals = None
+        self.xPwr = None
+        self.yPwr = None
         self.nXticks = nXticks
         self.nYticks = nYticks
         self.tickLen = tickLen
@@ -482,7 +484,7 @@ class ScatterPlot(tk.Frame):
         # labels will be numbers with finite significant figures.
         def calc_tick_vals(xMin, xMax, nTicks):
             rng = xMax-xMin
-            pwr = np.floor(np.log10(rng))-1
+            pwr = int(np.floor(np.log10(rng))-1)
             d = np.round(rng/(float(nTicks)*10.0**pwr)) * 10.0**pwr
             start = np.round(xMin/10.0**pwr) * 10.0**pwr
             ticks = []
@@ -494,19 +496,29 @@ class ScatterPlot(tk.Frame):
                     ticks.append(tick)
                 if tick>xMax:
                     break
-            return np.array(ticks)
+            return np.array(ticks), pwr
 
         # Calculate the tick values and convert to canvas coordinates
-        self.xTickVals = calc_tick_vals(self.xPlotMin, self.xPlotMax,
-                                        self.nXticks)
-        self.yTickVals = calc_tick_vals(self.yPlotMin, self.yPlotMax,
-                                        self.nYticks)
+        self.xTickVals, self.xPwr = calc_tick_vals(self.xPlotMin,
+                                                   self.xPlotMax,
+                                                   self.nXticks)
+        self.yTickVals, self.yPwr = calc_tick_vals(self.yPlotMin,
+                                                   self.yPlotMax,
+                                                   self.nYticks)
         self.xTicks, dummy = self._world2canvas(x=self.xTickVals)
         dummy, self.yTicks = self._world2canvas(y=self.yTickVals)
         
     def _draw_ticks(self):
         """Draw the tick-marks on the X and Y axis"""
-        
+
+        # Set the string formatting codes
+        if self.xPwr<=0:
+            xFmt = "{:" +".{:s}f".format(str(abs(self.xPwr))) + "}"
+        else:
+            xFmt = {}
+        if self.yPwr<=0:
+            yFmt = "{:" +".{:s}f".format(str(abs(self.yPwr))) + "}"
+            
         # Draw X ticks
         for i in range(len(self.xTicks)):
             self.canvas.create_line(self.xTicks[i],
@@ -516,7 +528,7 @@ class ScatterPlot(tk.Frame):
                                     width=1)
             self.canvas.create_text(self.xTicks[i],
                                     self.yCanMin+2*self.tickLen,
-                                    text='{}'.format( self.xTickVals[i]))
+                                    text=xFmt.format(self.xTickVals[i]))
             
         # Draw Y ticks
         for i in range(len(self.yTicks)):
@@ -527,7 +539,7 @@ class ScatterPlot(tk.Frame):
                                     width=1)
             self.canvas.create_text(self.xCanMin-2*self.tickLen,
                                     self.yTicks[i],
-                                    text='{}'.format(self.yTickVals[i]),
+                                    text=xFmt.format(self.yTickVals[i]),
                                     anchor=tk.E,)
 
     def _draw_points(self, pntSize=3, colour="blue"):
