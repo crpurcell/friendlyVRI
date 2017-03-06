@@ -20,17 +20,19 @@ DONE  - equalise X & y scales
 DONE  - Format of text labels and margins
   - Alternative vertical text for buggy python3
 * TreeTables:
-  - Format of column spacing & text.
+DONE  - Format of column spacing & text.
 * DoubleSlider:
+  - Bind entry boxes
+  - Limit parameter ranges.
   - Change to asymmetric handle shape.
   - Snap to grid.
-  - Bind entry boxes & limit significant figures.
+  - Limit significant figures.
 * Observing parameters:
   - Limit max & min values for all.
-  - Check for numbers & disallow non-numeric characters,
+  - Check for numbers & disallow non-numeric characters.
 * Model browser & observation control
   - relative path in file entry box ( + make longer )
-  - move all controlls to controller window.
+DONE  - move all controlls to controller window.
   - Add an information panel with:
     -- max & min size scale
     -- synthesised beam size
@@ -43,7 +45,10 @@ DONE  - Format of text labels and margins
     -- shadowing calculation.
     -- robust weighting calculation
     -- fitted synthesized beam size
-    -- Elevation plot for selected telescopes & uv-coverage 
+    -- Elevation plot for selected telescopes & uv-coverage
+    -- Initial instructions on the array plot window.
+    -- Array selection table: selection & plot should change by arrow. <Ret>
+       should choose>.
 * Plotting
  - scalebar on images rather than axes
  - primary beam circles on images.
@@ -58,3 +63,4 @@ DONE  - Format of text labels and margins
  - mask uv-coverage for elevation limits.
  - status lights
  - robust weighting calculation.
+ - Create ATCA array configuration files.

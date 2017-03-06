@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 05-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 06-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -119,8 +119,7 @@ class ScrolledTreeTab(tk.Frame):
             tree.move(item[1], '', i)
             
         # Toggle the sort function
-        tree.heading(col,
-                     command=lambda col=col: \
+        tree.heading(col, command=lambda col=col: \
                      self._sortby(tree, col, int(not descending)))
         
     def _change_numeric_onestep(self, data):
@@ -132,10 +131,10 @@ class ScrolledTreeTab(tk.Frame):
                 if child=="None":
                     child = "-inf"   # Regard text "None" as -infinity
                 newData.append((float(child), col))
-            print("Sorting column as numeric data.")
+            #print("Sorting column as numeric data.") # DEBUG
             return newData
         except Exception:
-            print("Sorting column as ascii data.")
+            #print("Sorting column as ascii data.") # DEBUG
             return data
 
     def name_columns(self, colNames):
@@ -143,11 +142,11 @@ class ScrolledTreeTab(tk.Frame):
         
         self.tree['columns'] = colNames
         for col in colNames:
-            self.tree.heading(col, text=col, command=lambda c=col: \
+            self.tree.heading(col, text=col, command=lambda c=col:
                               self._sortby(self.tree, c, 0))
             
             # Set the column width to the width of the header string
-            strWidth = tkFont.Font().measure(col)
+            strWidth = tkFont.Font().measure(col.title())
             self.tree.column(col, width=strWidth + self.strPad)
             self.tree.column(col, minwidth=strWidth + self.strPad)
         
@@ -160,11 +159,11 @@ class ScrolledTreeTab(tk.Frame):
         if len(self.tree['columns'])==0:
             self.tree['columns'] = colNames
             for col in colNames:
-                self.tree.heading(col, text=col, command=lambda c=col: \
+                self.tree.heading(col, text=col, command=lambda c=col:
                                   self._sortby(self.tree, c, 0))
         
             # Set the column width to the width of the header string
-            strWidth = tkFont.Font().measure(col)
+            strWidth = tkFont.Font().measure(col.title())
             self.tree.column(col, width=strWidth + self.strPad)
             self.tree.column(col, minwidth=strWidth + self.strPad)
             
@@ -177,9 +176,9 @@ class ScrolledTreeTab(tk.Frame):
             
             # Adjust the column width (& minwidth) to fit each value
             for i, val in enumerate(row):
-                strWidth = tkFont.Font().measure(val)
+                strWidth = tkFont.Font().measure(val.title())
                 if self.tree.column(colNames[i], width=None)<\
-                       (strWidth + self.strPad):
+                   (strWidth + self.strPad):
                     self.tree.column(colNames[i], width=strWidth +
                                      self.strPad)
                     self.tree.column(colNames[i], minwidth=strWidth +
@@ -515,9 +514,11 @@ class ScatterPlot(tk.Frame):
         if self.xPwr<=0:
             xFmt = "{:" +".{:s}f".format(str(abs(self.xPwr))) + "}"
         else:
-            xFmt = {}
+            xFmt = "{}"
         if self.yPwr<=0:
             yFmt = "{:" +".{:s}f".format(str(abs(self.yPwr))) + "}"
+        else:
+            yFmt = "{}"
             
         # Draw X ticks
         for i in range(len(self.xTicks)):
@@ -539,7 +540,7 @@ class ScatterPlot(tk.Frame):
                                     width=1)
             self.canvas.create_text(self.xCanMin-2*self.tickLen,
                                     self.yTicks[i],
-                                    text=xFmt.format(self.yTickVals[i]),
+                                    text=yFmt.format(self.yTickVals[i]),
                                     anchor=tk.E,)
 
     def _draw_points(self, pntSize=3, colour="blue"):
@@ -719,17 +720,17 @@ class ScrolledListBox(tk.Frame):
 class SingleFigFrame(tk.Frame):
     """Use a canvas widget to display a matplotlib figure. EXPERIMENTAL"""
 
-    def __init__(self, parent, width=500, height=500, *args, **kw):
+    def __init__(self, parent, *args, **kw):
         tk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
         # Create the blank figure canvas and grid its tk canvas
         # Create the blank figure and axis
-        self.fig = Figure(figsize=(3.5, 3.5))
+        self.fig = Figure(figsize=(3.5, 4.5))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.figCanvas.show()
         self.canvas = self.figCanvas.get_tk_widget()
-        self.canvas.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.ax = None
@@ -792,8 +793,8 @@ class DoubleScale(tk.Frame):
         # Draw the handles & create the bindings
         #hLeft = self._draw_handle(self.canMin, 'left')
         #hRight = self._draw_handle(self.canMax, 'right')
-        hLeft = self._draw_handle(self._world2canvas(-0.5), 'left')
-        hRight = self._draw_handle(self._world2canvas(0.5), 'right')
+        hLeft = self._draw_handle(self._world2canvas(-6.0), 'left')
+        hRight = self._draw_handle(self._world2canvas(+6.0), 'right')
         self._create_bindings()
 
         # Draw the limits as entry boxes
