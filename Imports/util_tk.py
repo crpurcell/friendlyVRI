@@ -59,12 +59,12 @@ from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 
 #-----------------------------------------------------------------------------#
-class ScrolledTreeTab(tk.Frame):
+class ScrolledTreeTab(ttk.Frame):
     """Use a ttk.Treeview as a multicolumn ListBox with scrollbars."""
     
     def __init__(self, parent, virtEvent="<<tab_row_selected>>", strPad=10,
                  *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
         self.rowSelected = None
         self.textSelected = None
@@ -242,12 +242,12 @@ class ScrolledTreeTab(tk.Frame):
 
 
 #-----------------------------------------------------------------------------#
-class ScrolledTreeView(tk.Frame):
+class ScrolledTreeView(ttk.Frame):
     """A ttk.Treeview with scrollbars. Selecting a row generates a virtual
     event so that the parent object can query the selection."""
     
     def __init__(self, parent, virtEvent="<<tree_selected>>", *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
         self.textSelected = None
         self.textRootSelected = None
@@ -293,12 +293,12 @@ class ScrolledTreeView(tk.Frame):
 
 
 #-----------------------------------------------------------------------------#
-class ScrolledCanvasFrame(tk.Frame):
+class ScrolledCanvasFrame(ttk.Frame):
     """Canvas with embedded frame, window & scrollbar. Used to provide a
     scrolled pane in which to layout widgets. EXPERIMENTAL."""
     
     def __init__(self, parent, *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
         # Create the canvas and the scrollbars
@@ -321,7 +321,7 @@ class ScrolledCanvasFrame(tk.Frame):
         self.rowconfigure(0, weight=1)
         
         # Now create a frame within the canvas
-        self.interior = tk.Frame(self.canvas)
+        self.interior = ttk.Frame(self.canvas)
         self.winID = self.canvas.create_window((0,0), window=self.interior,
                                          anchor="nw", tags="self.interior")
         
@@ -347,13 +347,13 @@ class ScrolledCanvasFrame(tk.Frame):
         
 
 #-----------------------------------------------------------------------------#
-class ScatterPlot(tk.Frame):
+class ScatterPlot(ttk.Frame):
     """Canvas configured as a simple scatterplot widget."""
     #                                                left, right, bottom, top
     def __init__(self, parent, width=500, height=500, axPad=(100,25,70,25),
                  tickLen=10, nXticks=3, nYticks=3, padF=0.05, aspect="free",
                  *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
         # Create the canvas and grid
@@ -628,11 +628,11 @@ class ScatterPlot(tk.Frame):
             
 
 #-----------------------------------------------------------------------------#
-class ScrolledListBox(tk.Frame):
+class ScrolledListBox(ttk.Frame):
 
     def __init__(self, parent, selectmode="single",
                  virtEvent="<<list_row_selected>>", *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
         self.virtEvent = virtEvent
         self.rowSelected = None
@@ -717,11 +717,11 @@ class ScrolledListBox(tk.Frame):
         
 
 #-----------------------------------------------------------------------------#
-class SingleFigFrame(tk.Frame):
+class SingleFigFrame(ttk.Frame):
     """Use a canvas widget to display a matplotlib figure. EXPERIMENTAL"""
 
     def __init__(self, parent, *args, **kw):
-        tk.Frame.__init__(self, parent, *args, **kw)
+        ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
         # Create the blank figure canvas and grid its tk canvas
@@ -742,22 +742,23 @@ class SingleFigFrame(tk.Frame):
 
     def show(self):
         self.figCanvas.show()
-        
+
+    
 #-----------------------------------------------------------------------------#
-class DoubleScale(tk.Frame):
+class DoubleScale(ttk.Frame):
     """Create a custom double slider widget in a canvas"""
 
     def __init__(self, parent, width=400, handlesize=7,
                  from_=0, to=100, tickIntMajor=20, tickIntMinor=None,
-                 linewidth=1, ticklen=20, yPad=30, xPad=30):
-        tk.Frame.__init__(self, parent)
-        self.parent = parent
-        #self.frame = tk.Frame(self.parent)
-        
+                 linewidth=1, ticklen=20, yPad=30, xPad=30, labFmt="{}"):
+        ttk.Frame.__init__(self, parent)
+        self.parent = parent        
+        bgColour = ttk.Style().lookup("TFrame", "background")
+
         # Canvas & ruler layout parameters
         self.width = width
         self.yZero = yPad + ticklen
-        self.height = self.yZero + handlesize + linewidth
+        self.height = self.yZero + handlesize*3 + linewidth
         xPad = max(xPad, handlesize/2.0)
         self.canMin = xPad
         self.canMax = width-xPad
@@ -769,6 +770,7 @@ class DoubleScale(tk.Frame):
         self.xMin = from_
         self.xMax = to
         self.dX = tickIntMajor
+        self.labFmt = labFmt
         if tickIntMinor is None:
             tickIntMinor = tickIntMajor/5.
         self.dx = tickIntMinor
@@ -783,29 +785,26 @@ class DoubleScale(tk.Frame):
         self.x = None
         
         # Insert the canvas
-        self.canvas = tk.Canvas(self,# background="white",
+        self.canvas = tk.Canvas(self, background=bgColour,
                                 width=self.width, height=self.height)
-        self.canvas.grid(row=0, column=0, columnspan=5,padx=0, pady=0)
-
+        self.canvas.grid(row=0, column=0, columnspan=3,padx=0, pady=0)
+        
         # Draw the axes
         self._draw_ruler()
 
         # Draw the handles & create the bindings
-        #hLeft = self._draw_handle(self.canMin, 'left')
-        #hRight = self._draw_handle(self.canMax, 'right')
-        hLeft = self._draw_handle(self._world2canvas(-6.0), 'left')
-        hRight = self._draw_handle(self._world2canvas(+6.0), 'right')
+        hLeft = self._draw_handle(self.canMin, 'left')
+        hRight = self._draw_handle(self.canMax, 'right')
         self._create_bindings()
 
         # Draw the limits as entry boxes
-        self.lowEnt = ttk.Entry(self, textvariable=self.valueLeft, width=10)
-        self.lowEnt.grid(row=1, column=0, padx=0, pady=0, sticky="E")
-        self.toLab = ttk.Label(self, text=" - ")
-        self.toLab.grid(row=1, column=1, padx=0, pady=0)
-        self.highEnt = ttk.Entry(self, textvariable=self.valueRight, width=10)
-        self.highEnt.grid(row=1, column=2, padx=0, pady=0, sticky="W")
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(2, weight=1)
+        cWidth = tkFont.Font().measure("0")
+        self.lowLab = ttk.Label(self, textvariable=self.valueLeft, width=7,
+                                anchor="center")
+        self.lowLab.grid(row=1, column=0, padx=0, pady=5, sticky="W")
+        self.highLab = ttk.Label(self, textvariable=self.valueRight, width=7,
+                                 anchor="center")
+        self.highLab.grid(row=1, column=2, padx=0, pady=0, sticky="E")
         
     def _draw_ruler(self):
         """Draw the ruler line with tick marks"""
@@ -867,24 +866,48 @@ class DoubleScale(tk.Frame):
         
         return x
         
+    def _draw_handle1(self, x, tag):
+        """Draw a handle as a triangle"""
+        
+        y = self.yZero-self.tickLen/3.0
+        size = self.handleSize
+        item = self.canvas.create_polygon(x, y,
+                                            x+size, y+size*2.,
+                                            x-size, y+size*2.,
+                                            x, y,
+                                            fill="lightblue", outline="black")
+        self.canvas.itemconfigure(item, tag=('handle', tag))
+        self._set_handle_value(item, x, self.labFmt)
+
+        return item
+    
     def _draw_handle(self, x, tag):
         """Draw a handle as a triangle"""
         
         y = self.yZero-self.tickLen/3.0
         size = self.handleSize
-        handle = self.canvas.create_polygon(x, y,
-                                            x+size, y+size*2.,
-                                            x-size, y+size*2.,
-                                            x, y,
-                                            fill="lightblue", outline="black")
-        self.canvas.itemconfigure(handle, tag=('handle', tag))
         if tag=="left":
-            self.limitLeft = x
-            self.valueLeft = self._canvas2world(x)
-        if tag=="right":
-            self.limitRight = x
-            self.valueRight = self._canvas2world(x)
-        return handle
+            polygon = (x, y,
+                       x, y+size*2.,
+                       x, y+size*3.,
+                       x-size*2, y+size*3.,
+                       x-size*2, y+size*2.,
+                       x, y)
+        else:
+            polygon = (x, y,
+                       x, y+size*2.,
+                       x, y+size*3.,
+                       x+size*2, y+size*3.,
+                       x+size*2, y+size*2.,
+                       x, y)
+                
+        item = self.canvas.create_polygon(polygon, fill="lightblue",
+                                          outline="black")
+        
+        self.canvas.itemconfigure(item, tag=('handle', tag))
+        self._set_handle_value(item, x, self.labFmt)
+
+        return item
     
     #-------------------------------------------------------------------------#
     def _create_bindings(self):
@@ -896,8 +919,6 @@ class DoubleScale(tk.Frame):
         """Triggered when the user clicks on a handle"""
         
         self.x = self.canvas.canvasx(evt.x)
-        #grid=self.dxCan
-        #self.x = self.canvas.canvasx(evt.x, grid)
         self.canvas.addtag_withtag('active', 'current')
         self.canvas.itemconfigure('active',{'fill': 'red', 'stipple': ''})
 
@@ -906,26 +927,32 @@ class DoubleScale(tk.Frame):
 
         if not self.canvas.find_withtag('active'):
             return
-        
-        cx = self.canvas.canvasx(evt.x)         
-        #grid=self.dxCan
-        #cx = self.canvas.canvasx(evt.x, grid)
 
+        # Current cursor X
+        cx = self.canvas.canvasx(evt.x)         
+
+
+        # Find the difference between the clicked position & edge
+        item = self.canvas.find_withtag('active')
+        edgeX = self.canvas.coords(item)[0]
+        dX = self.x - edgeX
+        
         # Prevent collisions
-        item= self.canvas.find_withtag('active')
         if "left" in self.canvas.gettags(item):
             limLeft = self.canMin
-            limRight = self.limitRight-self.dxCan
+            limRight = self.limitRight
         if "right" in self.canvas.gettags(item):
-            limLeft = self.limitLeft+self.dxCan
-            limRight = self.canMax        
-        if cx <= limLeft:
-            cx = limLeft
-        if cx >= limRight:
-            cx = limRight             
-        self.canvas.move('active', cx - self.x, 0)             
-
+            limLeft = self.limitLeft
+            limRight = self.canMax      
+        if cx <= limLeft +dX:
+            cx = limLeft +dX
+        if cx >= limRight +dX:
+            cx = limRight +dX           
+        self.canvas.move('active', cx - self.x, 0)
         self.x = cx
+
+        # Set the handle variable
+        self._set_handle_value(item, edgeX)
 
     def _release_handle(self, evt):
         """Triggered when the user releases the mouse"""
@@ -934,15 +961,17 @@ class DoubleScale(tk.Frame):
         if not self.canvas.find_withtag('active'):
             return
 
-        # Set the left or right values
-        item= self.canvas.find_withtag('active')
-        if "left" in self.canvas.gettags(item):
-            self.limitLeft = self.x
-            self.valueLeft = self._canvas2world(self.x)
-        if "right" in self.canvas.gettags(item):
-            self.limitRight = self.x
-            self.valueRight = self._canvas2world(self.x)
-            
+        # Change the colour and remove 'active' tag
         self.canvas.itemconfigure('active',
                                   {'fill': 'lightblue', 'stipple': ''})
         self.canvas.dtag('active')
+
+    def _set_handle_value(self, item, value, fmt="{}"):
+        
+        valFmt = "{0:.2f}".format(self._canvas2world(value))
+        if "left" in self.canvas.gettags(item):
+            self.limitLeft = value
+            self.valueLeft.set(valFmt)
+        if "right" in self.canvas.gettags(item):
+            self.limitRight = value
+            self.valueRight.set(valFmt)

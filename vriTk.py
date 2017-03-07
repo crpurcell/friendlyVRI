@@ -139,7 +139,7 @@ class App:
         
         # Create the array chooser frame
         self.controlFrm = ObsControlFrame(self.aConfWin)
-        self.controlFrm.grid(row=0, column=0, padx=5, pady=5, sticky="NSEW")
+        self.controlFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
 
         # Load the back-end and populate the array configuration list
         self.obsManager = observationManager()
@@ -327,12 +327,12 @@ class App:
         
         
 #-----------------------------------------------------------------------------#
-class ObsControlFrame(tk.Frame):
+class ObsControlFrame(ttk.Frame):
     """Frame presenting an interface to choose one or more array contigurations
     and set the observing parameters."""
     
     def __init__(self, parent):
-        tk.Frame.__init__(self, parent)
+        ttk.Frame.__init__(self, parent)
         self.parent = parent
 
         # Row & column weightings        
@@ -385,7 +385,7 @@ class ObsControlFrame(tk.Frame):
         self.delBtn = ttk.Button(self.actFrm, text="Clear Selected",
                                  command=self._handler_clear_button)
         self.delBtn.grid(column=0, row=1, padx=5, pady=5, sticky="EW" )
-        self.pltuvBtn = ttk.Button(self.actFrm, text="Update\nuv-Coverage",
+        self.pltuvBtn = ttk.Button(self.actFrm, text="Plot uv-Coverage",
                                    command=self._handler_plt_uvcov)
         self.pltuvBtn.grid(column=0, row=2, padx=5, pady=5, sticky="SEW" )
         #self.pltElBtn = ttk.Button(self.actFrm, text="Plot Elevation",
@@ -546,8 +546,8 @@ class ObsControlFrame(tk.Frame):
         selConf = self.configInTab.get_text_selected()
         if selConf is not None:
             selConf = list(selConf)
-            selConf.append(str(self.haScale.valueLeft))
-            selConf.append(str(self.haScale.valueRight))
+            selConf.append(self.haScale.valueLeft.get())
+            selConf.append(self.haScale.valueRight.get())
             self.configOutTab.insert_rows([selConf],
                             ("Telescope", "  Array  ", "HA-Start", " HA-End "))
         prevAddedLst = self.configOutTab.get_all_text()
