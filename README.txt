@@ -68,3 +68,16 @@ DONE  - move all controlls to controller window.
  - images resize when window is maximized
  - options to save publication quality plots
  - zoom in on synthesized beam (1/3rd of plot)
+
+#-----------------------------------------------------------------------------#
+# Using the observationManager from the ipython shell
+
+from Imports.vriCalc import observationManager
+obsMan = observationManager(verbose=True)
+obsMan.print_available_arrays()
+obsMan.select_array('VLA_A')
+obsMan.select_array('VLA_D')
+obsMan.print_selected_arrays()
+obsMan.calc_selected_uvcoverage()
+
+

@@ -50,14 +50,18 @@ C = 2.99792458e8
 
 #-----------------------------------------------------------------------------#
 class observationManager:
-    """Base class used to perform calculations for the simple virtual radio-
+    """Class used to perform calculations for the simple virtual radio-
     interferometer application. The user selects one or more array
-    configurations from the available list, chooses an hour-angle range for
-    each and a common observing frequency. The class calculates the
-    uv-coverage and applies to a model image to derive the dirty map."""
+    configurations from the available list and chooses an hour-angle range 
+    for each. The sampling cadence and observing frequency are common to all
+    telescopes and array configurations. The class calculates the
+    uv-coverage and applies this to a model image to produce the dirty map."""
     
-    def __init__(self, arrayDir="arrays"):
-
+    def __init__(self, arrayDir="arrays", verbose=False):
+        """Initialise the array configurations and default observing
+        parameters. The telescope & array configurations are defined in ASCII
+        files in the 'arrays' subdirectory."""
+        
         # ordered dictionary of available arrays as antArray objects.
         # Unique key = "telescope_config" with entries:
         #  { "row": <rownum>,
@@ -75,9 +79,13 @@ class observationManager:
 
         # Observing parameters        
         self.freq_Hz = 1420e6
-        self.lambda_m = 1420e6
+        self.lambda_m = C/self.freq_Hz
         self.sampRate_s = 60.0
         self.dec_deg = 20.0
+
+        # uv-coverage parameters
+        self.scaleMin_deg = None
+        self.priBeamMax_deg = None
         
         # Model image and parameters
         self.modelImgArr = None
@@ -99,6 +107,10 @@ class observationManager:
         self.obsFFTarr = None
         self.obsImgArr = None
 
+        # Status flags
+        self.statusSelection = False
+        self.statusModel = False
+        self.verbose = verbose
         
         # Read the array definition files from the array directory
         self._load_all_arrays(arrayDir)
@@ -110,11 +122,11 @@ class observationManager:
         
         # Read all files ending with '.config' in the array directory
         arrayFileLst = glob.glob(arrayDir + "/" + pattern)
-        sort_nicely(arrayFileLst)        
+        sort_nicely(arrayFileLst)
         for i in range(len(arrayFileLst)):
             arrayFile = arrayFileLst[i]
             
-            # Create an antArray object for each and store in dictionary
+            # Create an antArray object for each and store in a dictionary
             ar = antArray(arrayFileLst[i])
             key = ar.telescope + "_" + ar.config
             value = {"row": i,
@@ -127,38 +139,91 @@ class observationManager:
             self.telescopeLatDict[ar.telescope] = ar.latitude_deg
             self.telescopeDiamDict[ar.telescope] = ar.diameter_m
             
+        if self.verbose:
+            print("Successfully loaded %d array configurations." 
+                  % len(self.arrsAvailable))
+
+    def print_available_arrays(self):
+        """Print a list of available array configurations to the screen. The
+        unique 'key' column '<telescope>_<array>' is used to select the array
+        configuration and include in the observation table."""
+        
+        print("  KEY, TELESCOPE, ARRAY, MIN(baseline), MAX(BASELINE)\n")
+        for k, v in self.arrsAvailable.items():
+            print(k, v['telescope'], v['config'],
+                  np.min(v['antArray'].lBase_m),
+                  np.max(v['antArray'].lBase_m))
+            
     def select_array(self, key, haStart=-6.0, haEnd=6.0, byRow=False):
         """Select an array configuration to include in the observation. The
         hour-angle range is unique to each selected configuration"""
+
+        if key in self.arrsAvailable:
+            self.arrsSelected.append(
+                {"key": key,
+                 "telescope": self.arrsAvailable[key]["telescope"],
+                 "config": self.arrsAvailable[key]["config"],
+                 "row": int(self.arrsAvailable[key]["row"]),
+                 "haStart": float(haStart),
+                 "haEnd": float(haEnd),
+                 "haArr_rad": None,
+                 "uArr_lam": None,
+                 "vArr_lam": None,
+                 "scaleMin_deg": None,
+                 "scaleMax_deg": None,
+                 "priBeam_deg": None}
+            )
+        else:
+            if self.verbose:
+                print("Warning: array key '%s' not found!" % key)
+                print("\nAvailable array configurations are:")
+                print(self.arrsAvailable.keys())
+                
+    def print_selected_arrays(self):
+        """Print the array configurations already selected."""
+
+        if len(self.arrsSelected)>0:        
+            print("Currently selected array configurations:")
+            for i, e in enumerate(self.arrsSelected):
+                print(i, e["key"], e["telescope"], e["config"],
+                      e["haStart"], e["haEnd"])
+        else:
+            print("No array configurations currently selected.")            
         
-        self.arrsSelected.append(
-            {"row": int(self.arrsAvailable[key]["row"]),
-             "haStart": float(haStart),
-             "haEnd": float(haEnd),
-             "haArr_rad": None,
-             "uArr_lam": None,
-             "vArr_lam": None}
-        )
-        
-    def clear_selection(self):
+    def clear_all_selections(self):
         """Clear the selections from the arrsSelected table."""
         
         self.arrsSelected = []
             
     def set_obs_parms(self, freq_MHz=1420.0, sampRate_s=60.0, dec_deg=20.0):
-        """Set the common observation parameters."""
+        """Set the common observation parameters. Defaults:
+        freq_MHz   = 1420.0  
+        sampRate_s =   60.0
+        dec_deg    =   20.0"""
         
         self.freq_Hz = float(freq_MHz)*1e6
         self.sampRate_s = float(sampRate_s)
         self.dec_deg = float(dec_deg)
 
+    def print_obs_parms(self):
+        """Print the common observation parameters."""
+        
+        print ("Frequency (Hz):", self.freq_Hz)
+        print ("Sampling rate (s):", self.sampRate_s)
+        print ("Declination (deg)", self.dec_deg)
+
     def get_array_by_row(self, row):
-        """Access the ordered dict of available configurations by row index."""
+        """Access the ordered dict of available configurations as a list."""
         
         return list(self.arrsAvailable.values())[row]
         
     def calc_selected_uvcoverage(self, redo=False):
         """Calculate the uv-coverage for each of the selected array configs."""
+        
+        if len(self.arrsSelected)==0:
+            if self.verbose:
+                print("No array configurations selected.")
+                return
 
         # Unit conversions of common parameters
         self.lambda_m = C/self.freq_Hz
@@ -167,7 +232,14 @@ class observationManager:
         sampRate_hr = self.sampRate_s / 3600.0
         
         # Loop through each selected array configuration
+        scaleMinLst_deg = []
+        priBeamLst_deg = []
         for e in self.arrsSelected:
+            if self.verbose:
+                print("Calculating uv-coverage for %s" % [e["telescope"],
+                                                          e["config"],
+                                                          e["haStart"],
+                                                          e["haEnd"]])
             
             # Calculate the hour-angle sampling vector
             nSamps = int((e["haEnd"] - e["haStart"])/sampRate_hr +1)
@@ -189,6 +261,28 @@ class observationManager:
             e["uArr_lam"] = u_m/self.lambda_m
             e["vArr_lam"] = v_m/self.lambda_m
 
+            # Calculate the max & min scales from the projected baselines
+            lArr_lam = np.sqrt(e["uArr_lam"]**2.0 + e["vArr_lam"]**2.0)
+            e["scaleMin_deg"] = np.degrees(1.0/np.nanmax(lArr_lam))
+            e["scaleMax_deg"] = np.degrees(1.0/np.nanmin(lArr_lam))
+            e["priBeam_deg"] = np.degrees(1.22*self.lambda_m/ar.diameter_m)
+            scaleMinLst_deg.append(e["scaleMin_deg"])
+            priBeamLst_deg.append(e["priBeam_deg"])
+            if self.verbose:
+                print("Scale Range = {:.2f} - {:.2f} arcseconds.".\
+                      format(e["scaleMin_deg"]*3600.0,
+                             e["scaleMax_deg"]*3600.0))
+                print("Primary Beam = {:.2f} arcmin.".\
+                      format(e["priBeam_deg"]*60))
+                
+        # Remember the resolution and largest primary beam
+        self.scaleMin_deg = np.min(scaleMinLst_deg)
+        self.priBeamMax_deg = np.max(priBeamLst_deg)
+        if self.verbose:
+            print("Resolution = {:.2f} arcseconds.".\
+                  format(self.scaleMin_deg*3600.0))
+            print("Field of View =  {:.2f} arcminutes.".\
+                  format(self.priBeamMax_deg*60.0))
     def grid_uvcoverage(self):
         """Grid the uv-coverage to use as a mask for the Fourier domain image
         of the input model."""        

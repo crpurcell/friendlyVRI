@@ -157,7 +157,7 @@ class App:
         # Populate the observing parameters widgets
         self.controlFrm.freq_MHz.set(1420.0)
         self.controlFrm.sampRt_s.set(300)
-        self.controlFrm.dec_deg.set(5.5)
+        self.controlFrm.dec_deg.set(20.0)
         self.controlFrm.pixScale_asec.set(0.5)
         self.controlFrm.modelFile.set("models/radio_galaxy.png")
         
@@ -220,13 +220,13 @@ class App:
         self.obsManager.set_obs_parms(self.controlFrm.freq_MHz.get(),
                                       self.controlFrm.sampRt_s.get(),
                                       self.controlFrm.dec_deg.get())
-        self.obsManager.clear_selection()
+        self.obsManager.clear_all_selections()
         
     def _on_plot_uvcov(self, event=None):
         """Plot the uv-coverage for all selected array configurations"""
 
         # Clear any previous selection in the observationManager
-        self.obsManager.clear_selection()
+        self.obsManager.clear_all_selections()
         
         # Re-do the selection based on the arrays and HAs in the GUI
         for selection in self.controlFrm.configOutTab.get_all_text():
@@ -414,7 +414,8 @@ class ObsControlFrame(ttk.Frame):
         self.sampRtLab = ttk.Label(self.obsParmFrm,
                                    text="Data Sampling Rate (s):")
         self.sampRtLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
-        sampRtLst_s = ["10", "60", "60", "100", "300", "600"]
+        sampRtLst_s = ["10", "60", "60", "100", "300", "600", "1200", "1800",
+                       "3600"]
         self.sampRt_s = tk.StringVar()
         self.sampRtComb = ttk.Combobox(self.obsParmFrm,
                                        textvariable=self.sampRt_s,
