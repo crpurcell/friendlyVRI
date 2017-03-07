@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 06-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 07-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -748,9 +748,10 @@ class SingleFigFrame(ttk.Frame):
 class DoubleScale(ttk.Frame):
     """Create a custom double slider widget in a canvas"""
 
-    def __init__(self, parent, width=400, handlesize=7,
-                 from_=0, to=100, tickIntMajor=20, tickIntMinor=None,
-                 linewidth=1, ticklen=20, yPad=30, xPad=30, labFmt="{}"):
+    def __init__(self, parent, width=400, handlesize=7, from_=0, to=100,
+                 initLeft=None, initRight=None, tickIntMajor=20,
+                 tickIntMinor=None, linewidth=1, ticklen=20, yPad=30, xPad=30,
+                 labFmt="{}"):
         ttk.Frame.__init__(self, parent)
         self.parent = parent        
         bgColour = ttk.Style().lookup("TFrame", "background")
@@ -793,8 +794,12 @@ class DoubleScale(ttk.Frame):
         self._draw_ruler()
 
         # Draw the handles & create the bindings
-        hLeft = self._draw_handle(self.canMin, 'left')
-        hRight = self._draw_handle(self.canMax, 'right')
+        if initLeft is None:
+            initLeft = self.canMin
+        if initRight is None:
+            initRight = self.canMax
+        hLeft = self._draw_handle(self._world2canvas(initLeft), 'left')
+        hRight = self._draw_handle(self._world2canvas(initRight), 'right')
         self._create_bindings()
 
         # Draw the limits as entry boxes
@@ -865,24 +870,9 @@ class DoubleScale(ttk.Frame):
         x = (l-self.canMin)*xRng/canRng + self.xMin
         
         return x
-        
-    def _draw_handle1(self, x, tag):
-        """Draw a handle as a triangle"""
-        
-        y = self.yZero-self.tickLen/3.0
-        size = self.handleSize
-        item = self.canvas.create_polygon(x, y,
-                                            x+size, y+size*2.,
-                                            x-size, y+size*2.,
-                                            x, y,
-                                            fill="lightblue", outline="black")
-        self.canvas.itemconfigure(item, tag=('handle', tag))
-        self._set_handle_value(item, x, self.labFmt)
-
-        return item
     
     def _draw_handle(self, x, tag):
-        """Draw a handle as a triangle"""
+        """Draw a handle as a polygon."""
         
         y = self.yZero-self.tickLen/3.0
         size = self.handleSize
@@ -900,7 +890,6 @@ class DoubleScale(ttk.Frame):
                        x+size*2, y+size*3.,
                        x+size*2, y+size*2.,
                        x, y)
-                
         item = self.canvas.create_polygon(polygon, fill="lightblue",
                                           outline="black")
         
@@ -930,7 +919,6 @@ class DoubleScale(ttk.Frame):
 
         # Current cursor X
         cx = self.canvas.canvasx(evt.x)         
-
 
         # Find the difference between the clicked position & edge
         item = self.canvas.find_withtag('active')

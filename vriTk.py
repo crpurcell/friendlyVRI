@@ -70,6 +70,8 @@ except Exception:  # Python 3.x
     import tkinter.filedialog as tkFileDialog
     import tkinter.simpledialog as tkSimpleDialog
 import numpy as np
+import matplotlib as mpl
+mpl.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -355,25 +357,23 @@ class ObsControlFrame(ttk.Frame):
         self.haLab = ttk.Label(self.haFrm, text="Hour Angle Range (hours):")
         self.haLab.grid(column=0, row=0, padx=0, pady=0, sticky="NW")
         self.haScale = DoubleScale(self.haFrm, from_=-12.0, to=12.0,
+                                   initLeft=-1.0, initRight=+1.0,
                                    tickIntMajor=6, tickIntMinor=1, width=270)
         self.haScale.grid(column=0, row=1, padx=0, pady=5, sticky="NEW")
         
         # Fancy add button with strike-through arrow
+        bgColour = ttk.Style().lookup("TFrame", "background")
         self.addButFrm = ttk.Frame(self)
         self.addButFrm.grid(column=2, row=1, padx=5, pady=5,sticky="NSEW")
-        self.arrowL = tk.Canvas(self.addButFrm, width=70, height=20)
-        self.arrowL.create_line(0,10,70,10, width=2)
-        self.arrowL.grid(column=0, row=0, padx=0, pady=0, sticky="E")
-        self.arrowR = tk.Canvas(self.addButFrm, width=70, height=20)
-        self.arrowR.create_line(0,10,70,10, width=2,arrow=tk.LAST,
-                                arrowshape=(15,20,7))
-        self.arrowR.grid(column=2, row=0, padx=0, pady=0, sticky="W")
-        self.addBtn = ttk.Button(self.addButFrm, text="\nADD\n", width=10,
+        self.arrow = tk.Canvas(self.addButFrm, width=270, height=30,
+                               background=bgColour)
+        self.arrow.create_line(10,15,260,15, width=2, arrow=tk.LAST,
+                                arrowshape=(10,15,5))
+        self.arrow.grid(column=0, row=0, columnspan=3, padx=0, pady=0,
+                        sticky="EW")
+        self.addBtn = ttk.Button(self.addButFrm, text="ADD", width=10,
                                  command=self._handler_add_button)
         self.addBtn.grid(column=1, row=0, padx=0, pady=0)
-        self.addButFrm.columnconfigure(0, weight=1)
-        self.addButFrm.columnconfigure(2, weight=1)
-        self.addButFrm.rowconfigure(0, weight=1)
 
         # Action button frame: delete selection, plot uv-coverage & elevation
         self.actFrm = ttk.Frame(self)
@@ -579,6 +579,15 @@ class ObsControlFrame(ttk.Frame):
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()
+
+#    style = ttk.Style()
+#    style.theme_create( "yummy", parent="default", settings={
+#        "TFrame": {"configure": {"background": "#d2ffd2" } }})
+#    style.theme_use("yummy")
+    
+    ttk.Style().configure("TFrame", background="#d9d9d9")
+    ttk.Style().configure("TLabelframe", background="#d9d9d9")
+
     default_font = tkFont.nametofont("TkDefaultFont")
     default_font.configure(size=10)
     root.option_add("*Font", default_font)
