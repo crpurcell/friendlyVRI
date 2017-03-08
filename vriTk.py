@@ -304,7 +304,7 @@ class App:
         # Calculate the uv-coverage if not cached.
         
         # Grid the uv-coverage to make a mask
-        self.obsManager.grid_uvcoverage()
+        self.obsManager.grid_apply_uvcoverage()
         
         # Show the observed uv-coverage
         ax = self.obsFFTfrm.add_axis()
@@ -580,7 +580,8 @@ class ObsControlFrame(ttk.Frame):
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()
-
+    #root.tk.call('tk', 'scaling', 4.0)
+    #root.tk.call('tk', 'scaling', '-displayof', '.', 50)
 #    style = ttk.Style()
 #    style.theme_create( "yummy", parent="default", settings={
 #        "TFrame": {"configure": {"background": "#d2ffd2" } }})

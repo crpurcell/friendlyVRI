@@ -72,12 +72,27 @@ DONE  - move all controlls to controller window.
 #-----------------------------------------------------------------------------#
 # Using the observationManager from the ipython shell
 
+# Load the observation manager
 from Imports.vriCalc import observationManager
-obsMan = observationManager(verbose=True)
+#obsMan = observationManager(verbose=True)
+obsMan = observationManager(arrayDir="arrs", verbose=True)
+obsMan.arrsAvailable["VLA_A"]["antArray"]
+
 obsMan.print_available_arrays()
+
+# Select array configurations and hour-angle ranges.
 obsMan.select_array('VLA_A')
 obsMan.select_array('VLA_D')
 obsMan.print_selected_arrays()
+
+# Calculate the uv-coverage
 obsMan.calc_selected_uvcoverage()
 
+# Load the model
+obsMan.load_model_image("models/Lenna.png")
+
+# Do the observation
+obsMan.invert_model()
+obsMan.grid_apply_uvcoverage()
+obsMan.invert_observation()
 
