@@ -726,7 +726,7 @@ class SingleFigFrame(ttk.Frame):
 
         # Create the blank figure canvas and grid its tk canvas
         # Create the blank figure and axis
-        self.fig = Figure(figsize=(3.5, 4.5))
+        self.fig = Figure(figsize=(4.5, 4.0))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.figCanvas.show()
         self.canvas = self.figCanvas.get_tk_widget()

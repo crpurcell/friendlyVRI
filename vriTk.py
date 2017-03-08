@@ -94,7 +94,7 @@ class App:
     def __init__(self, root):
         self.root = root
         self.root.title("Friendly VRI: Display")
-        self.root.geometry(geometryMainWin)
+        #self.root.geometry(geometryMainWin)
         self.root.resizable(True, True)
         self.root.protocol("WM_DELETE_WINDOW", self.applicationExit)
         self.obsManager = None
@@ -135,7 +135,7 @@ class App:
         # Create the array chooser window and set the focus back to root
         self.aConfWin = tk.Toplevel(self.root)
         self.aConfWin.title("Friendly VRI: Observation Controller")
-        self.aConfWin.geometry(geometryAConfWin)
+        #self.aConfWin.geometry(geometryAConfWin)
         self.aConfWin.resizable(True, True)
         self.aConfWin.protocol("WM_DELETE_WINDOW", self.applicationExit)
         
