@@ -31,12 +31,14 @@ NA  - Snap to grid.
 DONE  - Limit significant figures.
 
 * Calculations and logic:
+DONE - flags showing & controlling steps done
+DONE - catch obvious errors
  - mask uv-coverage for elevation limits.
  - status lights
- - robust weighting calculation.
  - Create ATCA array configuration files.
- - Limit max & min values for all.
- - Check for numbers & disallow non-numeric characters.
+ - Limit max & min values in vriCalc
+ - Limt max & min value in vriTk
+ - In vriTk, check for numbers & disallow non-numeric characters.
 
 * Model browser & observation control
   - relative path in file entry box ( + make longer )
@@ -74,16 +76,15 @@ DONE  - move all controlls to controller window.
 
 # Load the observation manager
 from Imports.vriCalc import observationManager
-#obsMan = observationManager(verbose=True)
-obsMan = observationManager(arrayDir="arrs", verbose=True)
-obsMan.arrsAvailable["VLA_A"]["antArray"]
-
-obsMan.print_available_arrays()
+obsMan = observationManager(verbose=True, debug=True)
+obsMan.get_available_arrays()
 
 # Select array configurations and hour-angle ranges.
 obsMan.select_array('VLA_A')
+obsMan.select_array('VLA_B')
+obsMan.select_array('VLA_C')
 obsMan.select_array('VLA_D')
-obsMan.print_selected_arrays()
+obsMan.get_selected_arrays()
 
 # Calculate the uv-coverage
 obsMan.calc_selected_uvcoverage()
@@ -91,8 +92,12 @@ obsMan.calc_selected_uvcoverage()
 # Load the model
 obsMan.load_model_image("models/Lenna.png")
 
-# Do the observation
-obsMan.invert_model()
-obsMan.grid_apply_uvcoverage()
+# Grid the uv-coverage onto the model grid
+obsMan.grid_uvcoverage()
+
+# Create the beam image
+obsMan.calc_beam()
+
+# Apply the uv-coverage and create observed image
 obsMan.invert_observation()
 

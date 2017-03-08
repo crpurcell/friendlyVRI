@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 06-Mar-2017 by cpurcell                                           #
+# MODIFIED: 08-Mar-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -144,7 +144,7 @@ class App:
         self.controlFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
 
         # Load the back-end and populate the array configuration list
-        self.obsManager = observationManager()
+        self.obsManager = observationManager(verbose=True, debug=True)
         vals = self.obsManager.arrsAvailable.values()
         configLst = zip([x["telescope"] for x in vals],
                         [x["config"] for x in vals])
@@ -208,19 +208,21 @@ class App:
         
         # Fetch the antenna layout of the selected configuration
         row = event.widget.get_indx_selected()
-        xArr, yArr = self.obsManager.get_ant_coordinates(row)
+        xArr, yArr = self.obsManager.get_ant_coordinates(row=row)
         
         # Plot the antenna positions 
         self.controlFrm.antPosPlot.load_data(xArr/1000.0, yArr/1000.0)
         self.controlFrm.antPosPlot.draw_zerolines()
         self.controlFrm.antPosPlot.set_xlabel("East-West (km)")
         self.controlFrm.antPosPlot.set_ylabel("North-South (km)")
-
+       
     def _on_sel_change(self, event=None):
         self.obsManager.set_obs_parms(self.controlFrm.freq_MHz.get(),
                                       self.controlFrm.sampRt_s.get(),
                                       self.controlFrm.dec_deg.get())
         self.obsManager.clear_all_selections()
+
+        print self.obsManager.get_status()
         
     def _on_plot_uvcov(self, event=None):
         """Plot the uv-coverage for all selected array configurations"""
@@ -236,13 +238,14 @@ class App:
             self.obsManager.select_array(key, haStart, haEnd)
             
         # Calculate the uv-coverage for the selected observation parameters
-        self.obsManager.calc_selected_uvcoverage()
+        self.obsManager.calc_uvcoverage()
 
         # Plot in the display window
         ax = self.uvCovFrm.add_axis()
         plot_uvcov_ax(ax, self.obsManager.arrsSelected)
         self.uvCovFrm.show()
         
+        print self.obsManager.get_status()
         # ALT: Plot the uv-coverage as an external MPL figure
         #fig = plt.figure(figsize=(10,10))
         #ax = fig.add_subplot(111)
@@ -287,7 +290,7 @@ class App:
         self.obsManager.load_model_image(modelFile, pixScale_asec)
 
         # Calculate the FFT of the model
-        self.obsManager.invert_model()        
+        #self.obsManager.invert_model()        
         
         # Plot the model image
         ax = self.modelImgFrm.add_axis()
@@ -299,17 +302,14 @@ class App:
         plot_fft_ax(ax, self.obsManager.modelFFTarr)
         self.modelFFTfrm.show()
 
+        print self.obsManager.get_status()
+        
     def _on_do_observation(self, event=None):
 
         # Calculate the uv-coverage if not cached.
         
         # Grid the uv-coverage to make a mask
-        self.obsManager.grid_apply_uvcoverage()
-        
-        # Show the observed uv-coverage
-        ax = self.obsFFTfrm.add_axis()
-        plot_fft_ax(ax, self.obsManager.obsFFTarr)
-        self.obsFFTfrm.show()
+        self.obsManager.grid_uvcoverage()
         
         # Calculate the PSF
         self.obsManager.calc_beam()
@@ -318,15 +318,21 @@ class App:
         ax = self.beamFrm.add_axis()
         plot_image_ax(ax, self.obsManager.beamArr)
         self.beamFrm.show()
-
-        # Invert the masked FFT
+        
+        # Apply the gridded uv-coverage and invert
         self.obsManager.invert_observation()
+        
+        # Show the observed uv-coverage
+        ax = self.obsFFTfrm.add_axis()
+        plot_fft_ax(ax, self.obsManager.obsFFTarr)
+        self.obsFFTfrm.show()
         
         # Show the observed image
         ax = self.obsImgFrm.add_axis()
         plot_image_ax(ax, self.obsManager.obsImgArr)
         self.obsImgFrm.show()
         
+        print self.obsManager.get_status()
         
 #-----------------------------------------------------------------------------#
 class ObsControlFrame(ttk.Frame):
