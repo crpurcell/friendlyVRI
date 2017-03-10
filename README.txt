@@ -87,7 +87,7 @@ obsMan.select_array('VLA_D')
 obsMan.get_selected_arrays()
 
 # Calculate the uv-coverage
-obsMan.calc_selected_uvcoverage()
+obsMan.calc_uvcoverage()
 
 # Load the model
 obsMan.load_model_image("models/Lenna.png")

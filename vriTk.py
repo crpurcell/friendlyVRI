@@ -222,20 +222,29 @@ class App:
                                       self.controlFrm.dec_deg.get())
         self.obsManager.clear_all_selections()
 
-        print self.obsManager.get_status()
-        
-    def _on_plot_uvcov(self, event=None):
-        """Plot the uv-coverage for all selected array configurations"""
-
-        # Clear any previous selection in the observationManager
-        self.obsManager.clear_all_selections()
-        
         # Re-do the selection based on the arrays and HAs in the GUI
         for selection in self.controlFrm.configOutTab.get_all_text():
             key = "_".join(selection[:2])
             haStart = float(selection[2])
             haEnd = float(selection[3])
             self.obsManager.select_array(key, haStart, haEnd)
+        
+        # Update the status
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
+        
+    def _on_plot_uvcov(self, event=None):
+        """Plot the uv-coverage for all selected array configurations"""
+
+        # Clear any previous selection in the observationManager
+        #self.obsManager.clear_all_selections()
+        
+#        # Re-do the selection based on the arrays and HAs in the GUI
+#        for selection in self.controlFrm.configOutTab.get_all_text():
+#            key = "_".join(selection[:2])
+#            haStart = float(selection[2])
+#            haEnd = float(selection[3])
+#            self.obsManager.select_array(key, haStart, haEnd)
             
         # Calculate the uv-coverage for the selected observation parameters
         self.obsManager.calc_uvcoverage()
@@ -245,7 +254,10 @@ class App:
         plot_uvcov_ax(ax, self.obsManager.arrsSelected)
         self.uvCovFrm.show()
         
-        print self.obsManager.get_status()
+        # Update the status
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
+        
         # ALT: Plot the uv-coverage as an external MPL figure
         #fig = plt.figure(figsize=(10,10))
         #ax = fig.add_subplot(111)
@@ -302,17 +314,34 @@ class App:
         plot_fft_ax(ax, self.obsManager.modelFFTarr)
         self.modelFFTfrm.show()
 
-        print self.obsManager.get_status()
+        # Update the status
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
         
     def _on_do_observation(self, event=None):
 
         # Calculate the uv-coverage if not cached.
-        
+        stateDict = self.obsManager.get_status()
+        if not stateDict['statusuvCalc']:
+            self.obsManager.calc_uvcoverage()            
+
+            # Plot in the display window
+            ax = self.uvCovFrm.add_axis()
+            plot_uvcov_ax(ax, self.obsManager.arrsSelected)
+            self.uvCovFrm.show()
+            
+            stateDict = self.obsManager.get_status()
+            self.controlFrm.nst.set_state_dict(stateDict)
+            
         # Grid the uv-coverage to make a mask
         self.obsManager.grid_uvcoverage()
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
         
         # Calculate the PSF
         self.obsManager.calc_beam()
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
         
         # Show the observed beam
         ax = self.beamFrm.add_axis()
@@ -332,7 +361,9 @@ class App:
         plot_image_ax(ax, self.obsManager.obsImgArr)
         self.obsImgFrm.show()
         
-        print self.obsManager.get_status()
+        # Update the status
+        stateDict = self.obsManager.get_status()
+        self.controlFrm.nst.set_state_dict(stateDict)
         
 #-----------------------------------------------------------------------------#
 class ObsControlFrame(ttk.Frame):
@@ -370,9 +401,9 @@ class ObsControlFrame(ttk.Frame):
         # Fancy add button with strike-through arrow
         bgColour = ttk.Style().lookup("TFrame", "background")
         self.addButFrm = ttk.Frame(self)
-        self.addButFrm.grid(column=2, row=1, padx=5, pady=5,sticky="NSEW")
+        self.addButFrm.grid(column=2, row=1, padx=5, pady=5, sticky="NSEW")
         self.arrow = tk.Canvas(self.addButFrm, width=270, height=30,
-                               background=bgColour)
+                               background=bgColour, highlightthickness=0)
         self.arrow.create_line(10,15,260,15, width=2, arrow=tk.LAST,
                                 arrowshape=(10,15,5))
         self.arrow.grid(column=0, row=0, columnspan=3, padx=0, pady=0,
@@ -391,12 +422,6 @@ class ObsControlFrame(ttk.Frame):
         self.delBtn = ttk.Button(self.actFrm, text="Clear Selected",
                                  command=self._handler_clear_button)
         self.delBtn.grid(column=0, row=1, padx=5, pady=5, sticky="EW" )
-        self.pltuvBtn = ttk.Button(self.actFrm, text="Plot uv-Coverage",
-                                   command=self._handler_plt_uvcov)
-        self.pltuvBtn.grid(column=0, row=2, padx=5, pady=5, sticky="SEW" )
-        #self.pltElBtn = ttk.Button(self.actFrm, text="Plot Elevation",
-        #                           command=self._handler_plt_elevation)
-        #self.pltElBtn.grid(column=0, row=3, padx=5, pady=5, sticky="SEW" )
         
         # Listbox showing the selected array configurations
         self.configOutTab = ScrolledTreeTab(self,
@@ -437,7 +462,7 @@ class ObsControlFrame(ttk.Frame):
         self.decSrcEnt.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
         
         self.robustLab = ttk.Label(self.obsParmFrm,
-                                  text="Robustness Weighting Factor:")
+                                  text="Robust Weighting Factor:")
         self.robustLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
         robustLst = ["None", "-2.0", "-1.5", "-1.0", "-0.5", "0.0",
                      "0.5", "1.0", "1.5", "2.0"]
@@ -484,35 +509,7 @@ class ObsControlFrame(ttk.Frame):
                                    textvariable=self.pixScale_asec)
         self.pixScaEnt.grid(column=3, row=3, padx=5, pady=5, sticky="EW")
         
-        # Status frame
-        self.statFrm = ttk.LabelFrame(self, text="  Status  ")
-        self.statFrm.grid(column=3, row=3, padx=5, pady=5, sticky="NSEW")
-        self.modelLab = ttk.Label(self.statFrm, justify="center",
-                                  foreground="black",
-                                  background="orange",
-                                  text="Not Loaded", relief="solid",
-                                  anchor="center", padding=5, width=15)
-        self.modelStat = ttk.Label(self.statFrm, justify="center",
-                                   text="Model Image:",
-                                   anchor="center", padding=0)
-        self.modelStat.grid(row=0, column=0, padx=15, pady=5, sticky="NS")
-        self.modelLab.grid(row=1, column=0, padx=15, pady=5, sticky="NS")
-        self.arrayLab = ttk.Label(self.statFrm, justify="center",
-                                  foreground="black",
-                                  background="orange",
-                                  text="Not Loaded", relief="solid",
-                                  anchor="center", padding=5, width=15)
-        self.arrayStat = ttk.Label(self.statFrm, justify="center",
-                                   text="Array Configurations:",
-                                   anchor="center", padding=0)
-        self.arrayStat.grid(row=0, column=1, padx=15, pady=5, sticky="NS")
-        self.arrayLab.grid(row=1, column=1, padx=15, pady=5, sticky="NS")
-        self.observeBtn = ttk.Button(self.statFrm, text="\nDO OBSERVATION\n",
-                                     width=20,
-                                     command=self._handler_observe_button)
-        self.observeBtn.grid(row=2, column=0, columnspan=2, padx=5, pady=5,
-                             sticky="NSEW")
-        
+
 
         # Information panel
         self.infoFrm = ttk.LabelFrame(self, text="  Information  ")
@@ -529,6 +526,12 @@ class ObsControlFrame(ttk.Frame):
                                 text="Parameters from model image:")
         self.imgLab.grid(row=0, column=3, columnspan=2, padx=5, pady=5,
                          sticky="NSEW")
+        
+        # New Status frame
+        self.nst = StatusFrame(self, boxWidth=20, gapWidth=150)
+        self.nst.grid(column=0, row=5, columnspan=4, padx=5, pady=5,
+                      sticky="NSEW")
+
         
     def _handler_observe_button(self):
         """Run the observation"""
@@ -582,20 +585,179 @@ class ObsControlFrame(ttk.Frame):
         
         self.event_generate("<<plot_elevation>>")
         
+#-----------------------------------------------------------------------------#
+class StatusFrame(ttk.Frame):
+    """Frame presenting status indicators lights for the individual steps in
+    the application and the two main control buttons."""
+    
+    def __init__(self, parent, boxWidth=20, gapWidth=30, yPad=25):
+        ttk.Frame.__init__(self, parent)
+        self.parent = parent
+        bgColour = ttk.Style().lookup("TFrame", "background")
+        #bgColour = "white"
+
+        # Properties of the status boxes
+        self.tagLst = ['statusModel', 'statusSelection', 'statusModelFFT',
+                       'statusuvCalc', 'statusuvGrid', 'statusBeam',
+                       'statusObsDone']
+        labLst = ['Model', 'Array', 'Model FFT', 'uv-Coverage', 'uv-Grid',
+                  'Beam', 'Observation']
+        self.state = [0] * len(self.tagLst)
+        
+        # Calculate canvas dimensions and internal grid coordinates
+        self.boxWidth = boxWidth
+        self.gapWidth = gapWidth
+        self.yPad = yPad
+        self.nBox = len(self.tagLst)
+        self.width = self.nBox * boxWidth + self.nBox * gapWidth
+        self.height = boxWidth + yPad * 4.8
+        yCentLab = yPad * 0.75
+        self.yCentBox = boxWidth * 2.0
+        yCentBrkt = self.yCentBox + boxWidth / 2.0 + yPad
+        yCentBtn = yCentBrkt + yPad * 1.5
+        self.xCentLst = []
+        for i in range(self.nBox):
+            x = gapWidth/2.0 + boxWidth/2.0+ i*(boxWidth + gapWidth)
+            self.xCentLst.append(x)
+            
+        # Insert the canvas
+        self.canvas = tk.Canvas(self, width=self.width, height=self.height,
+                                background=bgColour, highlightthickness=0)
+        self.canvas.grid(row=0, column=0, padx=0, pady=0)
+
+        # Draw the boxes and labels in order
+        for x, tag, text, in zip(self.xCentLst, self.tagLst, labLst):
+            self._draw_checkbox(x, self.yCentBox, self.boxWidth, tag)
+            self.canvas.create_text(x, yCentLab, text=text)
+            
+        # Draw the line & the plotting buttons
+        x1 = self.xCentLst[1] - boxWidth / 2.0
+        x2 = x1 - gapWidth * 0.5
+        y1 = self.yCentBox
+        y2 = yCentBrkt
+        y3 = yCentBtn
+        self.canvas.create_line(x1, y1, x2, y1, x2, y3, width=2, fill="black",
+                                joinstyle=tk.MITER)
+        
+        self.pltuvCovBtn = ttk.Button(self, text = "Plot uv-Coverage",
+                                      width=20,
+                                      command=self._handler_plt_uvcov)
+        self.pltuvCovBtn.configure(state="disabled")        
+        self.canvas.create_window(x2, y2, window=self.pltuvCovBtn)
+        
+        self.pltElBtn = ttk.Button(self, text = "Plot Elevation", width=20,
+                                   command=self._handler_plt_elevation)
+        self.pltElBtn.configure(state="disabled")
+        self.elBtnW = self.canvas.create_window(x2, y3, window=self.pltElBtn)
+        
+        # Draw the line seperating inputs from outputs
+        x1 = self.xCentLst[1] + (self.xCentLst[2] - self.xCentLst[1]) / 2.0
+        x2 = self.xCentLst[0] + (self.xCentLst[1] - self.xCentLst[0]) / 2.0
+        self.canvas.create_line(x1, 0, x1, self.height, width=2, dash=4)
+
+        # Draw the observe button & bracket
+        x1 = self.xCentLst[2] - gapWidth / 3.0
+        x2 = self.xCentLst[-1] + gapWidth / 3.0
+        x3 = self.xCentLst[4]
+        y1 = self.yCentBox
+        y2 = yCentBrkt
+        y3 = yCentBtn
+        self.canvas.create_line(x1, y1, x1, y2, x2, y2, x2, y1, width=2,
+                                fill="black", joinstyle=tk.MITER)
+        self.canvas.create_line(x3, y2, x3, y3, width=2, fill="black",
+                                joinstyle=tk.MITER)
+        self.obsBtn = ttk.Button(self, text = "Do Observation", width=30,
+                                 command=self._handler_observe_button)
+        self.obsBtn.configure(state="disabled")
+        obsBtnW = self.canvas.create_window(x3, y3, window=self.obsBtn)
+        
+        
+    def _draw_checkbox(self, xCent, yCent, size, tag, state=0, lw=3):
+        """Draw a checkbox on the canvas."""
+
+        r = float(size)/2.0
+        
+        # Draw box & ticks
+        item = self.canvas.create_rectangle(xCent-r, yCent-r,
+                                            xCent+r, yCent+r,
+                                            outline="black", fill="white",
+                                            width=1.0, tag="checkbox")
+        self.canvas.addtag_withtag(tag, item)
+        if state:
+            item = self.canvas.create_line(xCent-r+lw, yCent+r/2-lw,
+                                           xCent-r/2+lw, yCent+r-lw,
+                                           xCent+r-lw, yCent-r+lw,
+                                           fill="green", capstyle=tk.ROUND,
+                                           width=lw, tag="tick")
+            self.canvas.addtag_withtag(tag, item)
+        else:
+            item = self.canvas.create_line(xCent-r+lw, yCent-r+lw,
+                                           xCent+r-lw, yCent+r-lw,
+                                           fill="red", capstyle=tk.ROUND,
+                                           width=lw, tag="tick")
+            self.canvas.addtag_withtag(tag, item)
+            item = self.canvas.create_line(xCent-r+lw, yCent+r-lw,
+                                           xCent+r-lw, yCent-r+lw,
+                                           fill="red", capstyle=tk.ROUND,
+                                           width=lw, tag="tick")
+            self.canvas.addtag_withtag(tag, item)
+
+    def set_state_dict(self, stateDict):
+        for k, v in stateDict.items():
+            self.set_state(k, v)
+            
+    def set_state(self, tag, state=0):
+
+        # Get the index of the box with the tag & set the new state
+        indx = self.tagLst.index(tag)
+        self.state[indx] = state
+
+        # Find and delete all items with requested tag
+        itemLst = self.canvas.find_withtag(tag)
+        for item in itemLst:
+            self.canvas.delete(item)
+            
+        # Re-draw the checkbox with the new state
+        self._draw_checkbox(self.xCentLst[indx], self.yCentBox, self.boxWidth,
+                            tag, state=self.state[indx])
+
+        # Enable or dissable buttons based on state
+        if self.state[1]:
+            self.pltuvCovBtn.configure(state="enabled")
+            self.pltElBtn.configure(state="enabled")
+        else:
+            self.pltuvCovBtn.configure(state="disabled")
+            self.pltElBtn.configure(state="disabled")
+            
+        if self.state[0] and self.state[1]:
+            self.obsBtn.configure(state="enabled")
+        else:
+            self.obsBtn.configure(state="disabled")
+            
+        
+                
+            
+    # Event handlers ---------------------------------------------------------#
+    
+    def _handler_plt_elevation(self):
+        self.event_generate("<<plot_elevation>>")
+        
+    def _handler_plt_uvcov(self):
+        self.event_generate("<<plot_uvcoverage>>")
+        
+    def _handler_observe_button(self):
+        self.event_generate("<<do_observation>>")
+        
         
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()
     #root.tk.call('tk', 'scaling', 4.0)
     #root.tk.call('tk', 'scaling', '-displayof', '.', 50)
-#    style = ttk.Style()
-#    style.theme_create( "yummy", parent="default", settings={
-#        "TFrame": {"configure": {"background": "#d2ffd2" } }})
-#    style.theme_use("yummy")
+    bgColour = ttk.Style().lookup("TFrame", "background")
+    ttk.Style().configure("TFrame", background=bgColour)
+    ttk.Style().configure("TLabelframe", background=bgColour)
     
-    ttk.Style().configure("TFrame", background="#d9d9d9")
-    ttk.Style().configure("TLabelframe", background="#d9d9d9")
-
     default_font = tkFont.nametofont("TkDefaultFont")
     default_font.configure(size=10)
     root.option_add("*Font", default_font)

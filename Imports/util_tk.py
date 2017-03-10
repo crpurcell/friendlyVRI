@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 07-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 10-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -302,7 +302,7 @@ class ScrolledCanvasFrame(ttk.Frame):
         self.parent = parent
 
         # Create the canvas and the scrollbars
-        self.canvas = tk.Canvas(self, border=0)
+        self.canvas = tk.Canvas(self, border=0, highlightthickness=0)
         vsb = ttk.Scrollbar(self, orient="vertical",
                             command=self.canvas.yview)
         #hsb = ttk.Scrollbar(self, orient="horizontal",
@@ -358,7 +358,7 @@ class ScatterPlot(ttk.Frame):
 
         # Create the canvas and grid
         self.canvas = tk.Canvas(self, background="white", width=width,
-                                height=height)
+                                height=height, highlightthickness=0)
         self.canvas.grid(column=0, row=0, padx=0, pady=0)
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -786,8 +786,8 @@ class DoubleScale(ttk.Frame):
         self.x = None
         
         # Insert the canvas
-        self.canvas = tk.Canvas(self, background=bgColour,
-                                width=self.width, height=self.height)
+        self.canvas = tk.Canvas(self, background=bgColour, width=self.width,
+                                height=self.height, highlightthickness=0)
         self.canvas.grid(row=0, column=0, columnspan=3,padx=0, pady=0)
         
         # Draw the axes
