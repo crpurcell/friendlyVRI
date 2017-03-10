@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 08-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 10-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -20,6 +20,7 @@
 #      od2list              ... convert an orderd dictionary to a list        #
 #      calc_uvcoverage      ... calculate the uv-coverage for selected arrays #
 #      load_model_image     ... load a model image                            #
+#      invert_model         ... calculate the FFT of the model image          #
 #      grid_uvcoverage      ... grid the uv-coverage onto the image grid      #
 #      calc_beam            ... calculate the beam image                      #
 #      invert_observation   ... apply the uv-coverage to the model image      #
@@ -413,11 +414,10 @@ class observationManager:
         self.statusuvCalc = True
             
     def load_model_image(self, modelFile, pixScaleImg_asec=0.5):
-        """Load a model image from a standard image file and calculate the
-        2D Fast Fourier Transform. Valid file formats are raster images
-        supported by the Python Imaging Library (PIL), e.g.: PNG, JPEG, 
-        TIFF, GIF and BMP. Images can be rectangular, but are assumed to
-        have square pixels."""
+        """Load a model image from a standard image file.  Valid file formats
+        are raster images supported by the Python Imaging Library (PIL), 
+        e.g.: PNG, JPEG, TIFF, GIF and BMP. Images can be rectangular, but are
+        assumed to have square pixels."""
 
         # Set the downstream status flags
         self.statusModel = False
@@ -446,7 +446,25 @@ class observationManager:
             print("Image size = %d x %d pixels [%.1f x %.1f arcsec]" % \
                   (self.nX, self.nY, self.nX*self.pixScaleImg_asec,
                    self.nY*self.pixScaleImg_asec))
-
+        
+        # Set the status of the model image & FFT flags to True
+        self.statusModel = True
+        
+    def invert_model(self):
+        """Calculate the 2D Fast Fourier Transform of the model image."""
+        
+        # First check that a model has been loaded
+        if not self.statusModel:
+            if self.verbose:
+                print("A model image has not been loaded.")
+            return
+        
+        # Set the downstream status flags
+        self.statusModelFFT = False
+        self.statusuvGrid = False
+        self.statusBeam = False
+        self.statusObsDone = False
+        
         # Calculate the 2D FFT and scaling factors.
         # The shape of FFT array is same as the model image.
         try:
@@ -466,22 +484,21 @@ class observationManager:
         # Print the model FFT parameters
         if self.verbose:
             print ("\nModel FFT Parameters:")
-            print "Pixel scale = %.3f x %.3f kilo-lambda" % \
-                (self.pixScaleFFTX_lam/1000.0, self.pixScaleFFTY_lam/1000.0)
-            print "Image limits: -%.3f to +%.3f kilo-lambda" % \
-                (self.fftScale_lam/1000.0, self.fftScale_lam/1000.0)
+            print("Pixel scale = %.3f x %.3f kilo-lambda" % \
+                (self.pixScaleFFTX_lam/1000.0, self.pixScaleFFTY_lam/1000.0))
+            print("Image limits: -%.3f to +%.3f kilo-lambda" % \
+                (self.fftScale_lam/1000.0, self.fftScale_lam/1000.0))
         
         # Set the status of the model image & FFT flags to True
-        self.statusModel = True
         self.statusModelFFT = True
         
     def grid_uvcoverage(self):
         """Grid the uv-coverage to use as a mask for the model FFT image."""
 
         # First check that a model has been loaded
-        if not self.statusModel or not self.statusModelFFT:
+        if not self.statusModelFFT:
             if self.verbose:
-                print("A model image has not been loaded.")
+                print("The FFT of the model image is not available!")
             return
         
         # Set the status flags for next calculations
