@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 10-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 13-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -66,7 +66,7 @@ import glob
 import traceback
 from collections import OrderedDict as od
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageTk
 
 # Speed of light
 C = 2.99792458e8
@@ -631,6 +631,37 @@ class observationManager:
             x = self.arrsAvailable[key]["antArray"].eastArr_m.copy()
             y = self.arrsAvailable[key]["antArray"].northArr_m.copy()
             return x, y
+        
+    def get_telescope_diameter(self, row=None, key=None):
+        
+        if row is None and key is None:
+            return None, None
+        
+        if row is not None:
+            arrsAvailLst = self.od2list(self.arrsAvailable)
+            if row>=len(arrsAvailLst):
+                return None
+            return arrsAvailLst[row]["antArray"].diameter_m
+        if key is not None:
+            if not key in self.arrsAvailable:
+                return None
+            return self.arrsAvailable[key]["antArray"].diameter_m
+        
+    def get_telescope_latitude(self, row=None, key=None):
+        
+        if row is None and key is None:
+            return None, None
+        
+        if row is not None:
+            arrsAvailLst = self.od2list(self.arrsAvailable)
+            if row>=len(arrsAvailLst):
+                return None
+            return arrsAvailLst[row]["antArray"].latitude_deg
+        if key is not None:
+            if not key in self.arrsAvailable:
+                return None
+            return self.arrsAvailable[key]["antArray"].latitude_deg
+        
         
     def calc_elevation_curve(self, telescope, haArray=None):
         """Calculate the elevation curves for a telescope and the current

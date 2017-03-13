@@ -34,14 +34,14 @@ DONE  - Limit significant figures.
 DONE - flags showing & controlling steps done
 DONE - catch obvious errors
  - mask uv-coverage for elevation limits.
- - status lights
+DIBE - status lights
  - Create ATCA array configuration files.
  - Limit max & min values in vriCalc
  - Limt max & min value in vriTk
  - In vriTk, check for numbers & disallow non-numeric characters.
 
 * Model browser & observation control
-  - relative path in file entry box ( + make longer )
+DONE  - relative path in file entry box ( + make longer )
 DONE  - move all controlls to controller window.
   - Add an information panel with:
     -- max & min size scale

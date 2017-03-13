@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 10-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 13-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -352,7 +352,7 @@ class ScatterPlot(ttk.Frame):
     #                                                left, right, bottom, top
     def __init__(self, parent, width=500, height=500, axPad=(100,25,70,25),
                  tickLen=10, nXticks=3, nYticks=3, padF=0.05, aspect="free",
-                 *args, **kw):
+                 pntSize=2.0, *args, **kw):
         ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
@@ -385,6 +385,7 @@ class ScatterPlot(ttk.Frame):
         self.height = height
         self.axPad = axPad
         self.aspect = aspect
+        self.pntSize = pntSize
 
         # Tickmarks and labels
         self.xTicks = None
@@ -624,7 +625,7 @@ class ScatterPlot(ttk.Frame):
         self._draw_ticks()
         
         # Draw the data
-        self._draw_points(pntSize=4, colour="SkyBlue2")
+        self._draw_points(pntSize=self.pntSize, colour="SkyBlue2")
             
 
 #-----------------------------------------------------------------------------#
