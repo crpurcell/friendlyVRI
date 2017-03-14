@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 13-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 14-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -26,6 +26,8 @@
 #      invert_observation   ... apply the uv-coverage to the model image      #
 #      get_status           ... set the status flags of each step             #
 #      get_ant_coordinates  ... get the antenna coords of an array            #
+#      get_antenna_diameter ... get the diameter of the antennas in the array #
+#      get_telescope_latitude . get the latitude of the array centre          #
 #      calc_elevation_curve ... calculate elevation curves                    #
 #                                                                             #
 #  antArray (class)                                                           #
@@ -632,7 +634,7 @@ class observationManager:
             y = self.arrsAvailable[key]["antArray"].northArr_m.copy()
             return x, y
         
-    def get_telescope_diameter(self, row=None, key=None):
+    def get_antenna_diameter(self, row=None, key=None):
         
         if row is None and key is None:
             return None, None

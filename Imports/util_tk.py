@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 13-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 14-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -726,7 +726,6 @@ class SingleFigFrame(ttk.Frame):
         self.parent = parent
 
         # Create the blank figure canvas and grid its tk canvas
-        # Create the blank figure and axis
         self.fig = Figure(figsize=(4.5, 4.0))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.figCanvas.show()
