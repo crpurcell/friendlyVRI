@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 14-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 15-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -25,9 +25,7 @@
 #      calc_beam            ... calculate the beam image                      #
 #      invert_observation   ... apply the uv-coverage to the model image      #
 #      get_status           ... set the status flags of each step             #
-#      get_ant_coordinates  ... get the antenna coords of an array            #
-#      get_antenna_diameter ... get the diameter of the antennas in the array #
-#      get_telescope_latitude . get the latitude of the array centre          #
+#      get_array_params     ... get the parameters of an available array      #
 #      calc_elevation_curve ... calculate elevation curves                    #
 #                                                                             #
 #  antArray (class)                                                           #
@@ -120,6 +118,7 @@ class observationManager:
 
         # uv-coverage parameters
         self.scaleMin_deg = None
+        self.scaleMax_deg = None
         self.priBeamMax_deg = None
         
         # Model image and parameters
@@ -292,6 +291,9 @@ class observationManager:
         """Clear all array configuration selections from the observation."""
         
         self.arrsSelected = []
+        self.scaleMin_deg = None
+        self.scaleMax_deg = None
+        self.priBeamMax_deg = None
         
         # Set the downstream status flags
         self.statusSelection = False
@@ -353,6 +355,7 @@ class observationManager:
         
         # Loop through each selected array configuration
         scaleMinLst_deg = []
+        scaleMaxLst_deg = []
         priBeamLst_deg = []
         for e in self.arrsSelected:
             if self.verbose:
@@ -388,6 +391,7 @@ class observationManager:
                 e["scaleMax_deg"] = np.degrees(1.0/np.nanmin(lArr_lam))
                 e["priBeam_deg"] = np.degrees(1.22*self.lambda_m/ar.diameter_m)
                 scaleMinLst_deg.append(e["scaleMin_deg"])
+                scaleMaxLst_deg.append(e["scaleMax_deg"])
                 priBeamLst_deg.append(e["priBeam_deg"])
                 if self.verbose:
                     print("Scale Range = {:.2f} - {:.2f} arcseconds.".\
@@ -405,6 +409,7 @@ class observationManager:
 
         # Remember the minumum resolution and largest primary beam
         self.scaleMin_deg = np.min(scaleMinLst_deg)
+        self.scaleMax_deg = np.max(scaleMaxLst_deg)
         self.priBeamMax_deg = np.max(priBeamLst_deg)
         if self.verbose:
             print("\nResolution = {:.2f} arcseconds.".\
@@ -427,6 +432,16 @@ class observationManager:
         self.statusuvGrid = False
         self.statusBeam = False
         self.statusObsDone = False
+
+        # Clear the downstream parameters
+        self.modelFFTarr = None
+        self.fftScale_lam = None
+        self.pixScaleFFTX_lam = None
+        self.pixScaleFFTY_lam = None
+        self.uvMaskArr = None
+        self.beamArr = None
+        self.obsFFTarr = None
+        self.obsImgArr = None
         
         # Open the image, convert to luminance and then a numpy array
         try:
@@ -612,58 +627,39 @@ class observationManager:
              "statusObsDone": self.statusObsDone}
         return d
             
-    def get_ant_coordinates(self, row=None, key=None):
-        """Return the antenna coordinates from one entry in the 
-        'arrsAvailable' dictionary. The query can either take row number 
-        or the key=['<telescope>_<configuration>']."""
+    def get_array_params(self, row=None, key=None):
+        """Return the basic parameters of an antenna array from one entry
+        in the 'arrsAvailable' dictionary. The query can take either a row
+        number or the key=['<telescope>_<configuration>']."""
 
-        if row is None and key is None:
-            return None, None
+        d = {"diameter_m": None,
+             "latitude_deg": None,
+             "baseMax_m": None,
+             "baseMin_m": None,
+             "x": None,
+             "y": None}
         
         if row is not None:
             arrsAvailLst = self.od2list(self.arrsAvailable)
             if row>=len(arrsAvailLst):
-                return None, None           
-            x = arrsAvailLst[row]["antArray"].eastArr_m.copy()
-            y = arrsAvailLst[row]["antArray"].northArr_m.copy()
-            return x, y
+                return d
+            d["diameter_m"] = arrsAvailLst[row]["antArray"].diameter_m
+            d["latitude_deg"] = arrsAvailLst[row]["antArray"].latitude_deg
+            d["baseMin_m"] = np.nanmin(arrsAvailLst[row]["antArray"].lBase_m)
+            d["baseMax_m"] = np.nanmax(arrsAvailLst[row]["antArray"].lBase_m)
+            d["x"] = arrsAvailLst[row]["antArray"].eastArr_m.copy()
+            d["y"] = arrsAvailLst[row]["antArray"].northArr_m.copy()
         if key is not None:
             if not key in self.arrsAvailable:
-                return None, None          
-            x = self.arrsAvailable[key]["antArray"].eastArr_m.copy()
-            y = self.arrsAvailable[key]["antArray"].northArr_m.copy()
-            return x, y
-        
-    def get_antenna_diameter(self, row=None, key=None):
-        
-        if row is None and key is None:
-            return None, None
-        
-        if row is not None:
-            arrsAvailLst = self.od2list(self.arrsAvailable)
-            if row>=len(arrsAvailLst):
-                return None
-            return arrsAvailLst[row]["antArray"].diameter_m
-        if key is not None:
-            if not key in self.arrsAvailable:
-                return None
-            return self.arrsAvailable[key]["antArray"].diameter_m
-        
-    def get_telescope_latitude(self, row=None, key=None):
-        
-        if row is None and key is None:
-            return None, None
-        
-        if row is not None:
-            arrsAvailLst = self.od2list(self.arrsAvailable)
-            if row>=len(arrsAvailLst):
-                return None
-            return arrsAvailLst[row]["antArray"].latitude_deg
-        if key is not None:
-            if not key in self.arrsAvailable:
-                return None
-            return self.arrsAvailable[key]["antArray"].latitude_deg
-        
+                return d
+            antArrayRow = self.arrsAvailable[key]["antArray"]
+            d["diameter_m"] = antArrayRow.diameter_m
+            d["latitude_deg"] = antArrayRow.latitude_deg
+            d["baseMin_m"] = np.nanmin(antArrayRow.lBase_m)
+            d["baseMax_m"] = np.nanmax(antArrayRow.lBase_m)
+            d["x"] = antArrayRow.eastArr_m.copy()
+            d["y"] = antArrayRow.northArr_m.copy()
+        return d
         
     def calc_elevation_curve(self, telescope, haArray=None):
         """Calculate the elevation curves for a telescope and the current

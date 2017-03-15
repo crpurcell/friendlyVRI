@@ -7,14 +7,17 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 14-Mar-2017 by cpurcell                                           #
+# MODIFIED: 15-Mar-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 # App                ... class containing the main application logic          #
-# PlotFrame          ... class defining the plotting window                   #
 # ObsControlFrame    ... class defining the observation controller interface  #
+# ArraySelector      ... class defining the array selection interface         #
+# ObsInputs          ... class exposing the remaining observation inputs      #
 # StatusFrame        ... class defining status indicators and action buttons  #
+# InformationPanel   ... class showing derived properties of observation
+# PlotFrame          ... class defining the plotting window                   #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -101,15 +104,16 @@ class App(ttk.Frame):
         self.rowconfigure(0, weight=1)
 
         # DEBUG
-        self.testWin = tk.Toplevel(self)
-        self.testWin.title(" TEST WINDOW ")
-        self.testWin.protocol("WM_DELETE_WINDOW", self.applicationExit)
-        self.testWin.resizable(True, True)
-        self.testWin.columnconfigure(0, weight=1)
-        self.testWin.rowconfigure(0, weight=1)
-        self.a =  PlotFrame1(self.testWin)
-        self.a.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
-        
+        if False:
+            self.testWin = tk.Toplevel(self)
+            self.testWin.title(" TEST WINDOW ")
+            self.testWin.protocol("WM_DELETE_WINDOW", self.applicationExit)
+            self.testWin.resizable(True, True)
+            self.testWin.columnconfigure(0, weight=1)
+            self.testWin.rowconfigure(0, weight=1)
+            self.a = ObsInputs(self.testWin)
+            self.a.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
+            
         # Load the back-end and populate the array configuration list
         # The observationManager class can be run stand-alone from an
         # iPython terminal and replicates the functionality of the GUI.
@@ -153,12 +157,46 @@ class App(ttk.Frame):
         self.parent.destroy()
 
     def update_status(self):
-        """Update the status indicators and clear plots based on the status
-        reported by the observationManager class."""
-        
+        """Update the status of the user interface, including the checkbox
+        indicators, plot axes and information panels. The status of each step
+        is queried from the instance of the observationManager class."""
+
+        # Query the status and set the indicators
         stateDict = self.obsManager.get_status()
         self.ctrlFrm.statFrm.set_state_dict(stateDict)
-        
+
+        # Set the scale information
+        scaleMin_deg = self.obsManager.scaleMin_deg
+        if scaleMin_deg is None:
+            self.ctrlFrm.infoPanel.scaleMin_asec.set("")
+        else:
+            scaleMin_asec = "{:.2f}".format(scaleMin_deg*3600.0)
+            self.ctrlFrm.infoPanel.scaleMin_asec.set(scaleMin_asec)
+        scaleMax_deg = self.obsManager.scaleMax_deg
+        if scaleMax_deg is None:
+            self.ctrlFrm.infoPanel.scaleMax_arcmin.set("")
+        else:
+            scaleMax_arcmin = "{:.2f}".format(scaleMax_deg*60.0)
+            self.ctrlFrm.infoPanel.scaleMax_arcmin.set(scaleMax_arcmin)
+        priBeamMax_deg = self.obsManager.priBeamMax_deg
+        if priBeamMax_deg is None:
+            self.ctrlFrm.infoPanel.fov_arcmin.set("")
+        else:
+            priBeamMax_arcmin = "{:.2f}".format(priBeamMax_deg*60.0)
+            self.ctrlFrm.infoPanel.fov_arcmin.set(priBeamMax_arcmin)
+
+        # Set the image and FFT information
+        try:
+            pixScaleImg_asec = self.obsManager.pixScaleImg_asec
+            nX = self.obsManager.nX
+            nY = self.obsManager.nY
+            extentX_arcmin = pixScaleImg_asec * nX / 60
+            extentY_arcmin = pixScaleImg_asec * nY / 60
+            text = "{:.1f} x {:.1f}".format(extentX_arcmin, extentY_arcmin)
+            self.ctrlFrm.infoPanel.imgSize_arcmin.set(text)
+        except Exception:
+            self.ctrlFrm.infoPanel.imgSize_arcmin.set("")
+            
     # Event handlers bound to virtual events ---------------------------------#
     #
     # _on_select_config 
@@ -174,30 +212,34 @@ class App(ttk.Frame):
     def _on_select_config(self, event=None):
         """Plot the antenna layout for the selected array configuration"""
         
-        # Query the antenna layout of the selected configuration
+        # Query the antenna parameters of the selected configuration
         row = event.widget.get_indx_selected()
-        xArr, yArr = self.obsManager.get_ant_coordinates(row=row)
+        d = self.obsManager.get_array_params(row=row)
         
         # Plot the antenna positions 
-        self.ctrlFrm.selector.antPosPlot.load_data(xArr/1000.0, yArr/1000.0)
+        self.ctrlFrm.selector.antPosPlot.load_data(d["x"]/1000.0, d["y"]/1000.0)
         self.ctrlFrm.selector.antPosPlot.draw_zerolines()
         self.ctrlFrm.selector.antPosPlot.set_xlabel("East-West (km)")
         self.ctrlFrm.selector.antPosPlot.set_ylabel("North-South (km)")
 
-        # Update the antenna diameter and array latitude
-        d = self.obsManager.get_antenna_diameter(row=row)
-        self.ctrlFrm.selector.antD_m.set(str(d) + " m" )
-        lat = self.obsManager.get_telescope_latitude(row=row)
-        self.ctrlFrm.selector.antL_deg.set(str(lat) + u"\u00B0")
+        # Show the antenna diameter and array latitude
+        text = "{:.1f} m".format(d["diameter_m"])
+        self.ctrlFrm.selector.antD_m.set(text)
+        text = u"{:.6f}\u00B0".format(d["latitude_deg"])
+        self.ctrlFrm.selector.antL_deg.set(text)
+        text = u"{:.3f} km".format(d["baseMin_m"]/1000.0)
+        self.ctrlFrm.selector.minBase_km.set(text)
+        text = u"{:.3f} km".format(d["baseMax_m"]/1000.0)
+        self.ctrlFrm.selector.maxBase_km.set(text)
         
     def _on_sel_change(self, event=None):
         """When the selection changes in the GUI, refresh the observation
         parameters in the observation manager."""
 
         # Reset the common parameters
-        self.obsManager.set_obs_parms(self.ctrlFrm.obsParms.freq_MHz.get(),
-                                      self.ctrlFrm.obsParms.sampRt_s.get(),
-                                      self.ctrlFrm.obsParms.dec_deg.get())
+        self.obsManager.set_obs_parms(self.ctrlFrm.inputs.freq_MHz.get(),
+                                      self.ctrlFrm.inputs.sampRt_s.get(),
+                                      self.ctrlFrm.inputs.dec_deg.get())
 
         # Reset the array an hour-angle selection
         self.obsManager.clear_all_selections()
@@ -265,8 +307,8 @@ class App(ttk.Frame):
         """Load a model image into the observation manager"""
         
         # Load the model image
-        modelFile = self.ctrlFrm.modelParms.modelPath
-        pixScale_asec = self.ctrlFrm.modelParms.pixScale_asec.get()
+        modelFile = self.ctrlFrm.inputs.modelPath
+        pixScale_asec = self.ctrlFrm.inputs.pixScale_asec.get()
         self.obsManager.load_model_image(modelFile, pixScale_asec)
         
         # Plot the model image
@@ -278,7 +320,7 @@ class App(ttk.Frame):
         self.update_status()
 
         # Change the icon of the load model button
-        self.ctrlFrm.modelParms._change_icon()
+        self.ctrlFrm.inputs._change_icon()
         
     def _on_do_observation(self, event=None):
         """Perform the bulk of the observing steps"""
@@ -352,39 +394,38 @@ class ObsControlFrame(ttk.Frame):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
 
+        # Set the expansion properties
+        self.columnconfigure(0, weight=1)
+        
         # Array selector interface
         self.selector =  ArraySelector(self)
-        self.selector.grid(column=0, row=0, columnspan=3, padx=10, pady=0,
-                           sticky="NW")
-
-        sep = ttk.Separator(self, orient="horizontal")
-        sep.grid(column=0, row=1, columnspan=3, padx=0, pady=5, sticky="EW")
+        self.selector.grid(column=0, row=0, padx=10, pady=5, sticky="EW")
         
-        # Common Observing parameters
-        self.obsParms = ObsSettings(self)
-        self.obsParms.grid(column=0, row=2, padx=10, pady=0, sticky="NW")
-        
-        sep = ttk.Separator(self, orient="vertical")
-        sep.grid(column=1, row=2, columnspan=1, padx=5, pady=0, sticky="NS")
-
-        # Model chooser frame
-        self.modelParms = ModelChooser(self)
-        self.modelParms.grid(row=2, column=2, padx=5, pady=0, sticky="NW")
-
         sep = ttk.Separator(self, orient="horizontal")
-        sep.grid(column=0, row=3, columnspan=3, padx=0, pady=5, sticky="EW")
-
+        sep.grid(column=0, row=1, padx=10, pady=5, sticky="EW")
+        
+        # Observation settings
+        self.inputs = ObsInputs(self)
+        self.inputs.grid(column=0, row=2, padx=10, pady=5, sticky="EW")
+        
+        sep = ttk.Separator(self, orient="horizontal")
+        sep.grid(column=0, row=3, padx=10, pady=5, sticky="EW")
+        
+        # Status frame
+        self.statFrm = StatusFrame(self, boxWidth=20, gapWidth=150)
+        self.statFrm.grid(column=0, row=4, padx=10, pady=5)
+        
+        sep = ttk.Separator(self, orient="horizontal")
+        sep.grid(column=0, row=5, padx=10, pady=5, sticky="EW")
+        
         # uv-coverage and model FFT information
-        self.scaleInfo = ScaleInformation(self)
-        self.scaleInfo.grid(column=0, row=4, columnspan=3, padx=5, pady=10,
-                            sticky="EW")
+        self.infoPanel = InformationPanel(self)
+        self.infoPanel.grid(column=0, row=6, padx=10, pady=5, sticky="EW")
 
         sep = ttk.Separator(self, orient="horizontal")
-        sep.grid(column=0, row=5, columnspan=3, padx=0, pady=5, sticky="EW")
+        sep.grid(column=0, row=5, padx=10, pady=5, sticky="EW")
         
         # New Status frame
-        self.statFrm = StatusFrame(self, boxWidth=20, gapWidth=150)
-        self.statFrm.grid(column=0, row=6, columnspan=4, padx=5, pady=5)
         
     def _handler_observe_button(self):
         """Run the observation"""
@@ -412,9 +453,10 @@ class ArraySelector(ttk.Frame):
         self.parent = parent
 
         # Set the expansion properties
-        self.columnconfigure(2, weight=1)
-        self.columnconfigure(6, weight=2)
-        self.columnconfigure(7, weight=2)
+        self.columnconfigure(2, weight=10)
+        self.columnconfigure(4, weight=1)
+        self.columnconfigure(5, weight=20)
+        self.columnconfigure(6, weight=20)
         self.rowconfigure(3, weight=2)
         
         # Scatter plot of antenna locations
@@ -428,28 +470,42 @@ class ArraySelector(ttk.Frame):
         self.configInTab = ScrolledTreeTab(self,
                                            virtEvent="<<config_in_selected>>")
         self.configInTab.name_columns(("Telescope", "Array"))
-        self.configInTab.grid(column=1, row=0, columnspan=4, rowspan=4,
+        self.configInTab.grid(column=1, row=0, columnspan=2, rowspan=4,
                               padx=5, pady=5, sticky="NSEW")
         
         # Antenna Diameter and array latitude labels
-        self.antDlab1 = ttk.Label(self, text=u"Antenna \u0398:   ")
-        self.antDlab1.grid(column=1, row=4, padx=0, pady=0, sticky="E")
+        self.antDlab = ttk.Label(self, text=u"Antenna \u0398:   ")
+        self.antDlab.grid(column=1, row=4, padx=0, pady=0, sticky="E")
         self.antD_m = tk.StringVar()
-        self.antDlab2 = ttk.Label(self, textvariable=self.antD_m)
-        self.antDlab2.grid(column=2, row=4, padx=0, pady=0, sticky="W")
-        self.antLlab1 = ttk.Label(self, text=u"Telescope \u03c6:   ")
-        self.antLlab1.grid(column=1, row=5, padx=0, pady=0, sticky="E")
+        self.antDval = ttk.Label(self, textvariable=self.antD_m)
+        self.antDval.grid(column=2, row=4, padx=0, pady=0, sticky="W")
+        self.antLlab = ttk.Label(self, text=u"Telescope \u03c6:   ")
+        self.antLlab.grid(column=1, row=5, padx=0, pady=0, sticky="E")
         self.antL_deg = tk.StringVar()
-        self.antLlab2 = ttk.Label(self, textvariable=self.antL_deg)
-        self.antLlab2.grid(column=2, row=5, padx=0, pady=0, sticky="W")
+        self.antLval = ttk.Label(self, textvariable=self.antL_deg)
+        self.antLval.grid(column=2, row=5, padx=0, pady=0, sticky="W")
+
+        # Minimum and maximum baseline labels
+        self.minBaseLab = ttk.Label(self, text=u"Min Baseline:   ")
+        self.minBaseLab.grid(column=3, row=5, padx=0, pady=0, sticky="E")
+        self.minBase_km = tk.StringVar()
+        self.minBaseVal = ttk.Label(self, textvariable=self.minBase_km)
+        self.minBaseVal.grid(column=4, row=5, padx=0, pady=0, sticky="W")
+        self.maxBaseLab = ttk.Label(self, text=u"Max Baseline:   ")
+        self.maxBaseLab.grid(column=3, row=4, padx=0, pady=0, sticky="E")
+        self.maxBase_km = tk.StringVar()
+        self.maxBaseVal = ttk.Label(self, textvariable=self.maxBase_km )
+        self.maxBaseVal.grid(column=4, row=4, padx=0, pady=0, sticky="W")
         
         # Hour angle slider
         self.haLab = ttk.Label(self, text="Hour Angle Range (hours):")
-        self.haLab.grid(column=5, row=0, padx=0, pady=5, sticky="NW")
+        self.haLab.grid(column=3, row=0, columnspan=2, padx=0, pady=5,
+                        sticky="NW")
         self.haScale = DoubleScale(self, from_=-12.0, to=12.0,
                                    initLeft=-1.0, initRight=+1.0,
                                    tickIntMajor=6, tickIntMinor=1, width=270)
-        self.haScale.grid(column=5, row=1, padx=0, pady=5, sticky="N")
+        self.haScale.grid(column=3, row=1, columnspan=2, padx=0, pady=5,
+                          sticky="N")
 
         # Fancy add button with strike-through arrow
         bgColour = ttk.Style().lookup("TFrame", "background")
@@ -460,23 +516,24 @@ class ArraySelector(ttk.Frame):
         self.addBtn = ttk.Button(self, text="Add", width=10,
                                  command=self._handler_add_button)
         self.canvas.create_window(135, 15, window=self.addBtn)
-        self.canvas.grid(column=5, row=2, padx=0, pady=5, sticky="NS")
+        self.canvas.grid(column=3, row=2, columnspan=2, padx=0, pady=5,
+                         sticky="NS")
 
         # Listbox showing the selected array configurations
         self.configOutTab = ScrolledTreeTab(self,
                                         virtEvent="<<config_out_selected>>")
         self.configOutTab.name_columns(("Telescope", "  Array  ",
                                         "HA-Start", " HA-End "))
-        self.configOutTab.grid(column=6, row=0, columnspan=2, rowspan=4,
+        self.configOutTab.grid(column=5, row=0, columnspan=2, rowspan=4,
                                padx=5, pady=5, sticky="NSEW")
         
         # Delete buttons
         self.delBtn = ttk.Button(self, text="Clear Selected", width=20,
                                  command=self._handler_clear_button)
-        self.delBtn.grid(column=6, row=5, padx=5, pady=5, sticky="EW" )
+        self.delBtn.grid(column=5, row=5, padx=5, pady=5, sticky="EW" )
         self.delAllBtn = ttk.Button(self, text="Clear All", width=20,
                                     command=self._handler_clear_all_button)
-        self.delAllBtn.grid(column=7, row=5, padx=5, pady=5, sticky="EW" )
+        self.delAllBtn.grid(column=6, row=5, padx=5, pady=5, sticky="EW" )
                 
     def _handler_add_button(self):
         """Add the selected configuration to the list box"""
@@ -505,40 +562,38 @@ class ArraySelector(ttk.Frame):
 
 
 #-----------------------------------------------------------------------------#
-class ObsSettings(ttk.Frame):
-    """Common settings for the observation (observing frequency, data sampling
-    cadence, Declination of source, Robust weighting factor"""
-    
+class ObsInputs(ttk.Frame):
+    """Input settings for the observation (observing frequency, data sampling
+    rate, Declination of source, Robust weighting factor, model image."""
+
     def __init__(self, parent, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
 
-        self.title = ttk.Label(self, text="Common Observation Settings:")
-        self.title.grid(row=0, column=0, padx=0, pady=0, columnspan=4,
-                        sticky="NW")
-
+        # Set the expansion properties
+        self.columnconfigure(3, weight=1)
+        self.columnconfigure(6, weight=1)
+        
         # Observing frequency
-        self.freqLab = ttk.Label(self,
-                                 text="Observing Frequency (MHz):")
-        self.freqLab.grid(column=0, row=1, padx=(15,5), pady=5, sticky="E")
+        self.freqLab = ttk.Label(self, text="Observing Frequency (MHz):")
+        self.freqLab.grid(column=1, row=0, padx=5, pady=5, sticky="E")
         self.freq_MHz = tk.StringVar()
         self.freq_MHz.set(1420.0)
         self.freqEnt = ttk.Entry(self, width=10, textvariable=self.freq_MHz)
-        self.freqEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        self.freqEnt.grid(column=2, row=0, padx=5, pady=5, sticky="EW")
 
         # Source Declination
         self.decSrcLab = ttk.Label(self,
                                    text="Source Declination (deg):")
-        self.decSrcLab.grid(column=0, row=2, padx=(15,5), pady=5, sticky="E")
+        self.decSrcLab.grid(column=1, row=1, padx=5, pady=5, sticky="E")
         self.dec_deg = tk.StringVar()
         self.dec_deg.set(20.0)
         self.decSrcEnt = ttk.Entry(self, width=10, textvariable=self.dec_deg)
-        self.decSrcEnt.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
-
+        self.decSrcEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
+        
         # Sampling rate
-        self.sampRtLab = ttk.Label(self,
-                                   text="Sampling Rate (s):")
-        self.sampRtLab.grid(column=2, row=1, padx=(15,5), pady=5, sticky="E")
+        self.sampRtLab = ttk.Label(self, text="Sampling Rate (s):")
+        self.sampRtLab.grid(column=4, row=0, padx=5, pady=5, sticky="E")
         sampRtLst_s = ["10", "60", "60", "100", "300", "600", "1200", "1800",
                        "3600"]
         self.sampRt_s = tk.StringVar()
@@ -546,45 +601,30 @@ class ObsSettings(ttk.Frame):
                                        textvariable=self.sampRt_s,
                                        values=sampRtLst_s, width=7)
         self.sampRtComb.current(4)
-        self.sampRtComb.grid(column=3, row=1, padx=5, pady=5, sticky="EW")
+        self.sampRtComb.grid(column=5, row=0, padx=5, pady=5, sticky="EW")
         
         # Weighting factor
         self.robustLab = ttk.Label(self, state="readonly" ,
                                    text="Robust Weighting Factor:")
-        self.robustLab.grid(column=2, row=2, padx=(15,5), pady=5, sticky="E")
+        self.robustLab.grid(column=4, row=1, padx=(15,5), pady=5, sticky="E")
         #robustLst = ["None", "-2.0", "-1.5", "-1.0", "-0.5", "0.0",
         #             "0.5", "1.0", "1.5", "2.0"]
         robustLst = ["None"]
         self.robust = tk.StringVar()
-        self.robustComb = ttk.Combobox(self, textvariable=self.robust,
+        self.robustComb = ttk.Combobox(self, state="readonly",
+                                       textvariable=self.robust,
                                        values=robustLst, width=15)
         self.robustComb.current(0)
-        self.robustComb.grid(column=3, row=2, padx=5, pady=5, sticky="EW")
-
-        
-#-----------------------------------------------------------------------------#
-class ModelChooser(ttk.Frame):
-    """Interface to choose a model image file."""
-
-    def __init__(self, parent, *args, **kwargs):
-        ttk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-        self.modelFile = None
-        self.modelPath = None
-
-        # Title
-        self.title = ttk.Label(self, text="Model Image:")
-        self.title.grid(row=0, column=0, padx=0, pady=0, columnspan=4,
-                        sticky="W")
-        
-        # Input file name
-        self.fileLab = ttk.Label(self, text="File:")
-        self.fileLab.grid(column=0, row=1, padx=(15,5), pady=5, sticky="E")
+        self.robustComb.grid(column=5, row=1, padx=5, pady=5, sticky="EW")
+    
+        # Model image
+        self.fileLab = ttk.Label(self, text="Model Image:")
+        self.fileLab.grid(column=7, row=0, padx=(15,5), pady=5, sticky="E")
         self.modelFile = tk.StringVar()
         self.fileEnt = ttk.Entry(self, width=30,
                                  textvariable=self.modelFile)
         self.fileEnt.configure(state="readonly")        
-        self.fileEnt.grid(column=1, row=1, columnspan=1, padx=5, pady=5,
+        self.fileEnt.grid(column=8, row=0, columnspan=4, padx=5, pady=5,
                           sticky="EW")
 
         # Browse and load buttons
@@ -592,26 +632,26 @@ class ModelChooser(ttk.Frame):
         browsePhoto = ImageTk.PhotoImage(buttonImage)
         self.browseBtn = ttk.Button(self, image=browsePhoto,
                                     command=self._handler_browse_button)
-        self.browseBtn.grid(column=2, row=1, padx=5, pady=5, sticky="E")
+        self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
         self.browseBtn.image = browsePhoto
         buttonImage = Image.open('Imports/load.gif')
         self.loadPhoto = ImageTk.PhotoImage(buttonImage)
         self.loadBtn = ttk.Button(self, image=self.loadPhoto,
                                   command=self._handler_load_button)
-        self.loadBtn.grid(column=3, row=1, padx=5, pady=5, sticky="E")
+        self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
         self.loadBtn.image = self.loadPhoto
 
         # Pixel scale
         self.pixScaLab = ttk.Label(self, text="Pixel Scale (arcsec):")
-        self.pixScaLab.grid(column=1, row=3, columnspan=1, padx=5, pady=5,
+        self.pixScaLab.grid(column=7, row=1, columnspan=1, padx=5, pady=5,
                             sticky="E")
         self.pixScale_asec = tk.DoubleVar()
         self.pixScale_asec.set(1.0)
-        self.pixScaEnt = ttk.Entry(self, width=3,
+        self.pixScaEnt = ttk.Entry(self, width=5,
                                    textvariable=self.pixScale_asec)
-        self.pixScaEnt.grid(column=2, row=3, columnspan=2,padx=5, pady=5,
-                            sticky="EW")
-        
+        self.pixScaEnt.grid(column=8, row=1, columnspan=1, padx=5, pady=5,
+                            sticky="W")
+    
     def _change_icon(self):
         buttonImage = Image.open('Imports/reload.gif')
         self.reloadPhoto = ImageTk.PhotoImage(buttonImage)
@@ -637,73 +677,6 @@ class ModelChooser(ttk.Frame):
         self.event_generate("<<load_model_image>>")
 
         
-#-----------------------------------------------------------------------------#
-class ScaleInformation(ttk.Frame):
-    """Frame presenting the parameters of the selected arrays and input model.
-    """
-
-    def __init__(self, parent, *args, **kwargs):
-        ttk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-
-        self.title = ttk.Label(self, text="Properties of uv-Coverage:")
-        self.title.grid(row=0, column=0, padx=0, pady=0, columnspan=2,
-                        sticky="NW")
-
-        # Resolution, maximum scale and field of view
-        self.resLab = ttk.Label(self, text=u"Resolution (arcsec):")
-        self.resLab.grid(column=0, row=1, padx=(15,5), pady=5, sticky="E")
-        self.resolution_asec = tk.StringVar()
-        self.resVal = ttk.Label(self, width=20,
-                                textvariable=self.resolution_asec)
-        self.resVal.grid(column=1, row=1, padx=5, pady=5, sticky="W")
-        self.maxScaleLab = ttk.Label(self, text=u"Maximum Scale (arcmin):")
-        self.maxScaleLab.grid(column=0, row=2, padx=(15,5), pady=5, sticky="E")
-        self.maxScale_arcmin = tk.StringVar()
-        self.maxScaleVal = ttk.Label(self, width=20,
-                                     textvariable=self.maxScale_arcmin)
-        self.maxScaleVal.grid(column=1, row=2, padx=5, pady=5, sticky="W")
-        self.fovLab = ttk.Label(self, text=u"Field of View: (arcmin):")
-        self.fovLab.grid(column=0, row=3, padx=(15,5), pady=5, sticky="E")
-        self.fov_arcmin = tk.StringVar()
-        self.fovVal = ttk.Label(self, width=20,
-                                textvariable=self.fov_arcmin)
-        self.fovVal.grid(column=1, row=3, padx=5, pady=5, sticky="W")
-
-        
-        sep = ttk.Separator(self, orient="vertical")
-        sep.grid(column=2, row=0, rowspan=4, padx=5, pady=0, sticky="NS")
-        
-        self.title = ttk.Label(self, text="Properties of Image and FFT:")
-        self.title.grid(column=3, row=0, padx=0, pady=0, columnspan=2,
-                        sticky="NW")
-        
-        # Image size in arcsec, pixel scale of FFT, Image limits
-        self.imgSizeLab = ttk.Label(self,
-                                    text=u"Image Extent [x, y] (arcmin):")
-        self.imgSizeLab.grid(column=3, row=1, padx=(15,5), pady=5, sticky="E")
-        self.imgSize_arcmin = tk.StringVar()
-        self.imgSizeVal = ttk.Label(self, width=20,
-                                    textvariable=self.imgSize_arcmin)
-        self.imgSizeVal.grid(column=4, row=1, padx=5, pady=5, sticky="W")
-
-        self.pixScaleLab = ttk.Label(self,
-                                     text=u"FFT Pixel Scale [x, y] (k\u03bb):")
-        self.pixScaleLab.grid(column=3, row=2, padx=(15,5), pady=5, sticky="E")
-        self.pixScale_kl = tk.StringVar()
-        self.pixScaleVal = ttk.Label(self, width=20,
-                                     textvariable=self.pixScale_kl)
-        self.pixScaleVal.grid(column=4, row=2, padx=5, pady=5, sticky="W")
-        
-        self.fftLimLab = ttk.Label(self,
-                                     text=u"FFT Image Limits (k\u03bb):")
-        self.fftLimLab.grid(column=3, row=3, padx=(15,5), pady=5, sticky="E")
-        self.fftLim_kl = tk.StringVar()
-        self.fftLimVal = ttk.Label(self, width=20,
-                                     textvariable=self.fftLim_kl)
-        self.fftLimVal.grid(column=4, row=3, padx=5, pady=5, sticky="W")
-        
-
 #-----------------------------------------------------------------------------#
 class StatusFrame(ttk.Frame):
     """Frame presenting status indicators lights for the individual steps in
@@ -893,6 +866,73 @@ class StatusFrame(ttk.Frame):
     def _handler_observe_button(self):
         self.event_generate("<<do_observation>>")
         
+        
+#-----------------------------------------------------------------------------#
+class InformationPanel(ttk.Frame):
+    """Frame presenting the information on the selected arrays, input model
+    and results"""
+
+    def __init__(self, parent, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        
+        self.title = ttk.Label(self, text="Properties of uv-Coverage:")
+        self.title.grid(row=0, column=0, padx=0, pady=0, columnspan=2,
+                        sticky="NW")
+
+        # Minimum, maximum scale and field of view
+        self.scaleMinLab = ttk.Label(self, text=u"Minimum Scale (arcsec):")
+        self.scaleMinLab.grid(column=0, row=1, padx=(15,5), pady=5, sticky="E")
+        self.scaleMin_asec = tk.StringVar()
+        self.scaleMinVal = ttk.Label(self, width=20,
+                                textvariable=self.scaleMin_asec)
+        self.scaleMinVal.grid(column=1, row=1, padx=5, pady=5, sticky="W")
+        self.scaleMaxLab = ttk.Label(self, text=u"Maximum Scale (arcmin):")
+        self.scaleMaxLab.grid(column=0, row=2, padx=(15,5), pady=5, sticky="E")
+        self.scaleMax_arcmin = tk.StringVar()
+        self.scaleMaxVal = ttk.Label(self, width=20,
+                                     textvariable=self.scaleMax_arcmin)
+        self.scaleMaxVal.grid(column=1, row=2, padx=5, pady=5, sticky="W")
+        self.fovLab = ttk.Label(self, text=u"Field of View: (arcmin):")
+        self.fovLab.grid(column=0, row=3, padx=(15,5), pady=5, sticky="E")
+        self.fov_arcmin = tk.StringVar()
+        self.fovVal = ttk.Label(self, width=20,
+                                textvariable=self.fov_arcmin)
+        self.fovVal.grid(column=1, row=3, padx=5, pady=5, sticky="W")
+
+        
+        sep = ttk.Separator(self, orient="vertical")
+        sep.grid(column=2, row=0, rowspan=4, padx=5, pady=0, sticky="NS")
+        
+        self.title = ttk.Label(self, text="Properties of Image and FFT:")
+        self.title.grid(column=3, row=0, padx=0, pady=0, columnspan=2,
+                        sticky="NW")
+        
+        # Image size in arcsec, pixel scale of FFT, Image limits
+        self.imgSizeLab = ttk.Label(self,
+                                    text=u"Image Extent [x, y] (arcmin):")
+        self.imgSizeLab.grid(column=3, row=1, padx=(15,5), pady=5, sticky="E")
+        self.imgSize_arcmin = tk.StringVar()
+        self.imgSizeVal = ttk.Label(self, width=20,
+                                    textvariable=self.imgSize_arcmin)
+        self.imgSizeVal.grid(column=4, row=1, padx=5, pady=5, sticky="W")
+
+        self.pixScaleLab = ttk.Label(self,
+                                     text=u"FFT Pixel Scale [x, y] (k\u03bb):")
+        self.pixScaleLab.grid(column=3, row=2, padx=(15,5), pady=5, sticky="E")
+        self.pixScale_kl = tk.StringVar()
+        self.pixScaleVal = ttk.Label(self, width=20,
+                                     textvariable=self.pixScale_kl)
+        self.pixScaleVal.grid(column=4, row=2, padx=5, pady=5, sticky="W")
+        
+        self.fftLimLab = ttk.Label(self,
+                                     text=u"FFT Image Limits (k\u03bb):")
+        self.fftLimLab.grid(column=3, row=3, padx=(15,5), pady=5, sticky="E")
+        self.fftLim_kl = tk.StringVar()
+        self.fftLimVal = ttk.Label(self, width=20,
+                                     textvariable=self.fftLim_kl)
+        self.fftLimVal.grid(column=4, row=3, padx=5, pady=5, sticky="W")
+
         
 #-----------------------------------------------------------------------------#
 class PlotFrame(ttk.Frame):
