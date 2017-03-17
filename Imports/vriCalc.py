@@ -5,11 +5,13 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 15-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 17-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 #  observationManager (class)                                                 #
+#      _reset_uv_vars       ... reset variables associated with uv-coverage   #
+#      _reset_model_vars    ... reset variables associated with model image   #
 #      _load_all_arrays     ... create the table of available array configs   #
 #      get_available_arrays ... list the available arrays                     #
 #      select_array         ... select an array config & HA-range             #
@@ -17,7 +19,6 @@
 #      clear_all_selections ... clear the current selections                  #
 #      set_obs_parms        ... set the common parameters (freq, samp, dec)   #
 #      get_obs_parms        ... get a dict of common parameters               #
-#      od2list              ... convert an orderd dictionary to a list        #
 #      calc_uvcoverage      ... calculate the uv-coverage for selected arrays #
 #      load_model_image     ... load a model image                            #
 #      invert_model         ... calculate the FFT of the model image          #
@@ -33,7 +34,9 @@
 #      _load_arrayfile      ... load an array definition file into the class  #
 #      _calc_baselines      ... calculate the baseline vectors                #
 #                                                                             #
+#  od2list                  ... convert an ordered dictionary to a list       #
 #  sort_nicely              ... sort words as a human would (1 before 10)     #
+#  ang2str                ... convert a degree angle to a string+units      #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -66,7 +69,7 @@ import glob
 import traceback
 from collections import OrderedDict as od
 import numpy as np
-from PIL import Image, ImageTk
+from PIL import Image
 
 # Speed of light
 C = 2.99792458e8
@@ -81,25 +84,25 @@ class observationManager:
     and observing frequency are common to all array configurations.
     
     The observationManager class keeps track of the observing parameters and
-    calculates the uv-coverage, which is then applied to a model image to 
-    simulate the observation. 
+    calculates the uv-coverage, which is then applied to a model image to
+    simulate the observation.
 
     The current version assumes a noiseless image, does not include sensitivity
     calculations and uses natural weighting only."""
     
-    def __init__(self, arrayDir="arrays", verbose=False, debug=False):
+    def __init__(self, arrayDir="arrays", verbose=True, debug=True):
         """Constructor for the observationManager class.
  
-        Initialise the array configurations and default observing parameters. 
+        Initialise the array configurations and default observing parameters.
         The array configurations are defined in ASCII files in the arrayDir
         subdirectory [default = 'arrays/']."""
         
         # Ordered dictionary of available arrays as antArray objects.
         # Unique key = "telescope_config" with entries:
-        #  { "row": <rownum>,
-        #    "telescope": <telescope_name>,
-        #    "config": <config_name>,
-        #    "antArray": <antennaArray_object> }
+        #  "row"       ... <row_number>
+        #  "telescope" ... <telescope_name>
+        #  "config"    ... <config_name>
+        #  "antArray"  ... <antennaArray_object>
         self.arrsAvailable = od()
         
         # Telescope parameter lookup tables
@@ -107,7 +110,19 @@ class observationManager:
         self.telescopeDiamDict = {}
         
         # Table of selected arrays. Each entry is a dictionary that will
-        # contain the HA array, uv-coverage arrays and scale information.
+        # contain the following keys:
+        #  "key"          ... unique key composed of <telescope>_<config>
+        #  "telescope"    ... name of telescope
+        #  "config"       ... name of array configuration
+        #  "row"          ... row number in the arrsAvailable table
+        #  "haStart"      ... starting Hour angle in hours
+        #  "haEnd"        ... ending Hour angle in hours
+        #  "haArr_rad"    ... vector of hour angles
+        #  "uArr_lam"     ... array of u values
+        #  "vArr_lam"     ... array of v values
+        #  "scaleMin_deg" ... minimum uv-coverage scale
+        #  "scaleMax_deg" ... maximum uv-coverage scale
+        #  "priBeam_deg"  ... primary beam FWHM at current frequency
         self.arrsSelected = []
 
         # Observing parameters common to all array configurations.
@@ -116,9 +131,11 @@ class observationManager:
         self.sampRate_s = 60.0
         self.dec_deg = 20.0
 
-        # uv-coverage parameters
+        # Ensemble uv-coverage parameters
         self.scaleMin_deg = None
         self.scaleMax_deg = None
+        self.uvRngMin_lam = None
+        self.uvRngMax_lam = None
         self.priBeamMax_deg = None
         
         # Model image and parameters
@@ -133,7 +150,7 @@ class observationManager:
         self.pixScaleFFTX_lam = None
         self.pixScaleFFTY_lam = None
         
-        # uv-mask and beam
+        # uv-mask and synthesised beam
         self.uvMaskArr = None
         self.beamArr = None
         
@@ -141,7 +158,7 @@ class observationManager:
         self.obsFFTarr = None
         self.obsImgArr = None
 
-        # Status flags
+        # Flags
         self.statusSelection = False
         self.statusuvCalc = False
         self.statusModel = False
@@ -155,12 +172,39 @@ class observationManager:
         # Read the array definition files from the array directory
         self._load_all_arrays(arrayDir)
     
+    def _reset_uv_vars(self):
+        """Reset the variables associated with uv-coverage."""
+        
+        self.uvMaskArr = None
+        self.beamArr = None
+        self.scaleMin_deg = None
+        self.scaleMax_deg = None
+        self.priBeamMax_deg = None
+        self.obsFFTarr = None
+        self.obsImgArr = None
+
+    def _reset_model_vars(self):
+        """Reset the variables associated with the model."""
+        
+        self.modelImgArr = None
+        self.nX = None
+        self.nY = None
+        self.pixScaleImg_asec = None
+        self.modelFFTarr = None
+        self.fftScale_lam = None
+        self.pixScaleFFTX_lam = None
+        self.pixScaleFFTY_lam = None
+        self.uvMaskArr = None
+        self.beamArr = None
+        self.obsFFTarr = None
+        self.obsImgArr = None
+        
     def _load_all_arrays(self, arrayDir, pattern="*.config"):
         """Read and parse each of the ASCII files defining the antenna
         coordinates and telescope parameters (telescope, configuration, 
         latitude, antenna diameter). By default all files with extension
         '.config' in the arrayDir directory are read. The information on 
-        each array configuration is stored in an orderd dictionary of 
+        each array configuration is stored in an ordered dictionary of 
         antArray objects."""
         
         # Read all files ending with '.config' in the array directory
@@ -188,7 +232,7 @@ class observationManager:
                   % len(self.arrsAvailable))
 
     def get_available_arrays(self):
-        """Get a list of available array configurations from the 
+        """Return a list of available array configurations from the
         'arrsAvailable' dict. Returns a numpy structured array with column
         names ['key', 'telescope', 'config', 'minBaseline', 'maxBaseline'].
         """
@@ -214,6 +258,9 @@ class observationManager:
         array configurations (format = <telescope>_<array>). Available keys
         can be queried by invoking the get_available_arrays() method."""
 
+        # Clear downstream uv-coverage variables
+        self._reset_uv_vars()
+        
         # Set the downstream status flags
         self.statusSelection = False
         self.statusuvCalc = False
@@ -222,7 +269,7 @@ class observationManager:
         self.statusObsDone = False
 
         # Limit the values of haStart and haEnd
-        try: 
+        try:
             haStart = max(-12.0, float(haStart))
             haEnd = min(12.0, float(haEnd))
         except Exception:
@@ -232,7 +279,7 @@ class observationManager:
                 print(traceback.format_exc())
                 return
             
-        # Append to the observation table
+        # Append selection to the observation table
         if key in self.arrsAvailable:
             try: 
                 self.arrsSelected.append(
@@ -269,7 +316,7 @@ class observationManager:
             self.statusSelection = True
                 
     def get_selected_arrays(self):
-        """Get a list of array configurations selected for the current
+        """Return a list of array configurations selected for the current
         observation (from the 'arrsSelected' list). Returns a numpy structured
         array with column names ['#', 'key', 'telescope', 'config', 'haStart',
         'haEnd']."""
@@ -289,12 +336,11 @@ class observationManager:
         
     def clear_all_selections(self):
         """Clear all array configuration selections from the observation."""
-        
+
+        # Clear all uv-coverage variables
         self.arrsSelected = []
-        self.scaleMin_deg = None
-        self.scaleMax_deg = None
-        self.priBeamMax_deg = None
-        
+        self._reset_uv_vars()
+
         # Set the downstream status flags
         self.statusSelection = False
         self.statusuvCalc = False
@@ -326,26 +372,24 @@ class observationManager:
              "dec_deg": self.dec_deg}
         
         return d
-
-    def od2list(self, od):
-        """Convert an ordered dictionary to a list."""
-        
-        return list(od.values())
     
     def calc_uvcoverage(self, redo=False):
         """Calculate the uv-coverage for each of the selected array configs."""
-        
-        # Set the downstream status flags
-        self.statusuvCalc = False
-        self.statusuvGrid = False
-        self.statusBeam = False
-        self.statusObsDone = False
 
         # Check for selected array configurations
         if len(self.arrsSelected)==0:
             if self.verbose:
                 print("No array configurations selected.")
                 return
+
+        # Reset the downstream variables
+        self._reset_uv_vars()
+        
+        # Set the downstream status flags
+        self.statusuvCalc = False
+        self.statusuvGrid = False
+        self.statusBeam = False
+        self.statusObsDone = False
 
         # Unit conversions of common parameters
         self.lambda_m = C/self.freq_Hz
@@ -370,7 +414,7 @@ class observationManager:
                 e["haArr_rad"] = haArr_rad
             
                 # Fill the uv-plane with samples over the hour-angle range
-                ar = self.od2list(self.arrsAvailable)[e["row"]]["antArray"]
+                ar = od2list(self.arrsAvailable)[e["row"]]["antArray"]
                 latitude_rad = np.radians(ar.latitude_deg)
                 u_m = np.zeros((ar.nBase, nSamps))
                 v_m = np.zeros((ar.nBase, nSamps))
@@ -394,11 +438,11 @@ class observationManager:
                 scaleMaxLst_deg.append(e["scaleMax_deg"])
                 priBeamLst_deg.append(e["priBeam_deg"])
                 if self.verbose:
-                    print("Scale Range = {:.2f} - {:.2f} arcseconds.".\
-                          format(e["scaleMin_deg"]*3600.0,
-                                 e["scaleMax_deg"]*3600.0))
-                    print("Primary Beam = {:.2f} arcmin.".\
-                          format(e["priBeam_deg"]*60))
+                    print("Scale Range = %s to %s" %
+                          (ang2str(e["scaleMin_deg"]),
+                                   ang2str(e["scaleMax_deg"])))
+                    print("Primary Beam FWHM = %s" %
+                          (ang2str(e["priBeam_deg"])))
             except Exception:        
                 if self.verbose:
                     print("uv-coverage calculation failed for:")
@@ -407,41 +451,38 @@ class observationManager:
                     print(traceback.format_exc())
                 return
 
-        # Remember the minumum resolution and largest primary beam
+        # Remember the range of scales and largest primary beam
         self.scaleMin_deg = np.min(scaleMinLst_deg)
         self.scaleMax_deg = np.max(scaleMaxLst_deg)
+        self.uvRngMin_lam = 1.0/np.radians(np.max(scaleMaxLst_deg))
+        self.uvRngMax_lam = 1.0/np.radians(np.min(scaleMinLst_deg))
         self.priBeamMax_deg = np.max(priBeamLst_deg)
         if self.verbose:
-            print("\nResolution = {:.2f} arcseconds.".\
-                  format(self.scaleMin_deg*3600.0))
-            print("Field of View =  {:.2f} arcminutes.".\
-                  format(self.priBeamMax_deg*60.0))
+            print ("\nuv-Coverage Parameters:")
+            print(u"Minimum uv-Spacing = %.3f k\u03bb" % (self.uvRngMin_lam/1e3))
+            print(u"Maximum uv-Spacing = %.3f k\u03bb" % (self.uvRngMax_lam/1e3))
+            print("Minimum scale = %s" % (ang2str(self.scaleMin_deg)))
+            print("Maximum scale = %s" % (ang2str(self.scaleMax_deg)))
+            print("Field of View = %s" % (ang2str(self.priBeamMax_deg)))
 
         # Update the status flag for the uvcoverage calculation
         self.statusuvCalc = True
             
     def load_model_image(self, modelFile, pixScaleImg_asec=0.5):
-        """Load a model image from a standard image file.  Valid file formats
-        are raster images supported by the Python Imaging Library (PIL), 
+        """Load a model from a standard image file.  Valid file formats are
+        raster images supported by the Python Imaging Library (PIL),
         e.g.: PNG, JPEG, TIFF, GIF and BMP. Images can be rectangular, but are
         assumed to have square pixels."""
 
+        # Reset the downstream model variables
+        self._reset_model_vars()
+        
         # Set the downstream status flags
         self.statusModel = False
         self.statusModelFFT = False
         self.statusuvGrid = False
         self.statusBeam = False
         self.statusObsDone = False
-
-        # Clear the downstream parameters
-        self.modelFFTarr = None
-        self.fftScale_lam = None
-        self.pixScaleFFTX_lam = None
-        self.pixScaleFFTY_lam = None
-        self.uvMaskArr = None
-        self.beamArr = None
-        self.obsFFTarr = None
-        self.obsImgArr = None
         
         # Open the image, convert to luminance and then a numpy array
         try:
@@ -459,10 +500,10 @@ class observationManager:
         # Print the model image parameters
         if self.verbose:
             print ("\nModel Image Parameters:")
-            print("Pixel scale = %.3f arcsec " % self.pixScaleImg_asec)
-            print("Image size = %d x %d pixels [%.1f x %.1f arcsec]" % \
-                  (self.nX, self.nY, self.nX*self.pixScaleImg_asec,
-                   self.nY*self.pixScaleImg_asec))
+            print("Pixel scale = %s" % (ang2str(self.pixScaleImg_asec/3600.0)))
+            print("Image size = %d x %d pixels [%s x %s]" % (self.nX, self.nY,
+                                ang2str(self.nX*self.pixScaleImg_asec/3600.0),
+                                ang2str(self.nY*self.pixScaleImg_asec/3600.0)))
         
         # Set the status of the model image & FFT flags to True
         self.statusModel = True
@@ -493,7 +534,7 @@ class observationManager:
             self.pixScaleFFTY_lam = 2.0*self.fftScale_lam/self.nY            
         except Exception:
             if self.verbose:
-                print("Failed to take the FFT of the model image.")
+                print("Failed to calculate the FFT of the model image.")
             if self.debug:
                 print(traceback.format_exc())
             return        
@@ -501,10 +542,10 @@ class observationManager:
         # Print the model FFT parameters
         if self.verbose:
             print ("\nModel FFT Parameters:")
-            print("Pixel scale = %.3f x %.3f kilo-lambda" % \
-                (self.pixScaleFFTX_lam/1000.0, self.pixScaleFFTY_lam/1000.0))
-            print("Image limits: -%.3f to +%.3f kilo-lambda" % \
-                (self.fftScale_lam/1000.0, self.fftScale_lam/1000.0))
+            print(u"Pixel scale = %.3f x %.3f k\u03bb" % \
+                  (self.pixScaleFFTX_lam/1000.0, self.pixScaleFFTY_lam/1000.0))
+            print(u"Image limits = -%.3f to +%.3f k\u03bb" % \
+                  (self.fftScale_lam/1000.0, self.fftScale_lam/1000.0))
         
         # Set the status of the model image & FFT flags to True
         self.statusModelFFT = True
@@ -512,10 +553,10 @@ class observationManager:
     def grid_uvcoverage(self):
         """Grid the uv-coverage to use as a mask for the model FFT image."""
 
-        # First check that a model has been loaded
-        if not self.statusModelFFT:
+        # First check uv-coverage and model are available
+        if not self.statusModelFFT or not self.statusuvCalc:
             if self.verbose:
-                print("The FFT of the model image is not available!")
+                print("Model FFT or uv-Coverage unavailable!")
             return
         
         # Set the status flags for next calculations
@@ -552,7 +593,7 @@ class observationManager:
             nPix = self.uvMaskArr.shape[0] * self.uvMaskArr.shape[1]
             nUsedPix = np.sum(self.uvMaskArr)
             pc = nUsedPix*100.0/nPix
-            print("{:.1f} % of pixels used in observed FFT image.".\
+            print("{:.2f} % of pixels used in observed FFT image.".\
                   format(pc))                
 
         # Set the status of the uv-grid flag
@@ -588,7 +629,7 @@ class observationManager:
         """Apply the gridded uv-coverage to the model FFT image, and
         invert to produce the final observed image."""
         
-        # First check for that a model has been loaded
+        # First check that tge gridding has been done
         if not self.statusuvGrid:
             if self.verbose:
                 print("The uv-coverage has not been gridded!")
@@ -627,6 +668,19 @@ class observationManager:
              "statusObsDone": self.statusObsDone}
         return d
             
+    def get_scales(self):
+        """Return the values of the status flags as a dictionary."""
+        
+        d = {"scaleMin_deg": self.scaleMin_deg,
+             "scaleMax_deg": self.scaleMax_deg,
+             "uvRngMin_lam": self.uvRngMin_lam,
+             "uvRngMax_lam": self.uvRngMax_lam,
+             "priBeamMax_deg": self.priBeamMax_deg,
+             "pixScaleFFTX_lam": self.pixScaleFFTX_lam,
+             "pixScaleFFTY_lam": self.pixScaleFFTY_lam,
+             "fftScale_lam": self.fftScale_lam}
+        return d
+             
     def get_array_params(self, row=None, key=None):
         """Return the basic parameters of an antenna array from one entry
         in the 'arrsAvailable' dictionary. The query can take either a row
@@ -640,7 +694,7 @@ class observationManager:
              "y": None}
         
         if row is not None:
-            arrsAvailLst = self.od2list(self.arrsAvailable)
+            arrsAvailLst = od2list(self.arrsAvailable)
             if row>=len(arrsAvailLst):
                 return d
             d["diameter_m"] = arrsAvailLst[row]["antArray"].diameter_m
@@ -666,18 +720,17 @@ class observationManager:
         source declination over a vector of hour-angles."""
         
         pass
-#        haArr_hr = np.linspace(-6.0, +6.0, 100)
-#        haArr_rad = np.radians(haArr_hr * 15.0)
-#        dec_rad = np.radians(self.dec_deg)
-#        elLst = []        
-#        telescopeLst = self.telescopeLatDict.keys()
-#        for telescope in telescopeLst:                    
-#            latitude_rad = np.radians(self.telescopeLatDict[telescope])
-#            el  = (np.sin(latitude_rad) * np.sin(dec_rad) +
-#                   np.cos(latitude_rad) * np.cos(dec_rad) * np.cos(haArr_rad))
-#            elLst.append(el)
-#
-#        return haArr_rad, elLst
+        #haArr_hr = np.linspace(-6.0, +6.0, 100)
+        #haArr_rad = np.radians(haArr_hr * 15.0)
+        #dec_rad = np.radians(self.dec_deg)
+        #elLst = []        
+        #telescopeLst = self.telescopeLatDict.keys()
+        #for telescope in telescopeLst:                    
+        #    latitude_rad = np.radians(self.telescopeLatDict[telescope])
+        #    el  = (np.sin(latitude_rad) * np.sin(dec_rad) +
+        #           np.cos(latitude_rad) * np.cos(dec_rad) * np.cos(haArr_rad))
+        #    elLst.append(el)
+        #return haArr_rad, elLst
 
 
 
@@ -833,7 +886,7 @@ class antArray:
                     self.Bz_m[n] = self.zArr_m[j] - self.zArr_m[i]
                     n += 1
 
-            # Calculate vector of baseline length
+            # Calculate vector of baseline lengths
             self.lBase_m = np.sqrt(self.Bx_m**2.0 + self.By_m**2.0
                                    + self.Bz_m**2.0)
         except Exception:
@@ -842,11 +895,39 @@ class antArray:
             return 0
         
         return 1
+
+    
+#-----------------------------------------------------------------------------#
+def od2list(od):
+    """Convert an ordered dictionary to a list."""
         
+    return list(od.values())
+
+
 #-----------------------------------------------------------------------------#
 def sort_nicely( l ):
-    """Sort in human order"""
+    """Sort in human order. Code from StackOverflow:
+    http://stackoverflow.com/questions/4836710/
+    does-python-have-a-built-in-function-for-string-natural-sort"""
     
     convert = lambda text: int(text) if text.isdigit() else text 
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)] 
     l.sort( key=alphanum_key ) 
+
+    
+#-----------------------------------------------------------------------------#
+def ang2str(angle_deg):
+    """Convert an angle in degrees to a unicode string with appropriate units.
+    """
+    try:
+        angle_deg = float(angle_deg)
+        angle_arcsec = angle_deg*3600.0
+        if angle_arcsec<60.0:
+            text = u'{:.2f}"'.format(angle_arcsec)
+        elif angle_arcsec>=60.0 and angle_arcsec<3600.0:
+            text = u"{:.2f}'".format(angle_deg*60.0)
+        else:
+            text = u"{:.2f}\u00B0".format(angle_deg)
+        return text
+    except Exception:
+        return ""

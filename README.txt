@@ -43,12 +43,11 @@ DIBE - status lights
 * Model browser & observation control
 DONE  - relative path in file entry box ( + make longer )
 DONE  - move all controlls to controller window.
-  - Add an information panel with:
-    -- max & min size scale
+IN PROG  - Add an information panel with:
+DONE    -- max & min size scale
     -- synthesised beam size
-    -- ideal sampling parameters
-    -- image sampling parameters
-    -- warning about miss-match between model & observing parameters
+DONE    -- image sampling parameters
+NA    -- warning about miss-match between model & observing parameters
     
 * Nice to have:
   - graphical comparison of model size scale (structure fn?, dispersion)
