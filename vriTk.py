@@ -984,12 +984,14 @@ class PlotFrame(ttk.Frame):
                             sticky="EW")
 
     def _plot_image(self, ax, imgArr, title=""):
+        ax.cla()
         ax.imshow(imgArr, cmap=plt.cm.cubehelix,
                   interpolation="nearest", origin="lower")
         ax.set_title(title)
         ax.set_aspect('equal')
 
     def _plot_fft(self, ax, fftArr, title=""):
+        ax.cla()
         ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
                   interpolation="nearest", origin="lower")
         ax.set_title(title)
@@ -998,7 +1000,7 @@ class PlotFrame(ttk.Frame):
         ax.set_aspect('equal')#, 'datalim')
         
     def _plot_uvcov(self, ax, arrsSelected):
-
+        ax.cla()
         for e in arrsSelected:
             u = e["uArr_lam"]
             v = e["vArr_lam"]
