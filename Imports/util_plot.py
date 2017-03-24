@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Matplotlib plotting functions for the VRI application.            #
 #                                                                             #
-# MODIFIED: 03-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 24-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -76,7 +76,7 @@ def plot_image_ax(ax, imgArr):
     #ax.set_title("Model Image")
     ax.set_xlabel(u"X (pixels)")
     ax.set_ylabel(u"Y (pixels)")
-    ax.set_aspect('equal', 'datalim')
+    #ax.set_aspect('equal', 'datalim')
     
 #-----------------------------------------------------------------------------#
 def plot_fft_ax(ax, imgArr, extent=[]):

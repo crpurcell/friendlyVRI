@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 17-Mar-2017 by cpurcell                                           #
+# MODIFIED: 24-Mar-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -44,6 +44,22 @@
 #     update                                                                  #
 #                                                                             #
 # PlotFrame          ... class defining the plotting window                   #
+#     _plot_image                                                             #
+#     _plot_fft                                                               #
+#     _plot_uvcov                                                             #
+#     plot_model_image                                                        #
+#     clear_model_image                                                       #
+#     plot_model_fft                                                          #
+#     clear_model_fft                                                         #
+#     plot_uvcov                                                              #
+#     clear_uvcov                                                             #
+#     plot_beam                                                               #
+#     clear_beam                                                              #
+#     plot_obs_fft                                                            #
+#     clear_obs_fft                                                           #
+#     plot_obs_image                                                          #
+#     clear_obs_image                                                         #
+#     show                                                                    #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -91,11 +107,12 @@ import numpy as np
 import matplotlib as mpl
 mpl.use("TkAgg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import ImageTk
 
 from Imports.util_tk import *
-from Imports.util_plot import *
 from Imports.vriCalc import *
 
 
@@ -156,7 +173,7 @@ class App(ttk.Frame):
             self.testWin.resizable(True, True)
             self.testWin.columnconfigure(0, weight=1)
             self.testWin.rowconfigure(0, weight=1)
-            self.a = ObsInputs(self.testWin)
+            self.a =PlotFrame(self.testWin)
             self.a.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
             
         # Load the back-end and populate the array configuration list
@@ -271,9 +288,11 @@ class App(ttk.Frame):
         self.obsManager.invert_model()
         
         # Plot the model FFT
-        ax = self.pltFrm.modelFFTfrm.add_axis()
-        plot_fft_ax(ax, self.obsManager.modelFFTarr)
-        self.pltFrm.modelFFTfrm.show()
+        #ax = self.pltFrm.modelFFTfrm.add_axis()
+        #plot_fft_ax(ax, self.obsManager.modelFFTarr)
+        #self.pltFrm.modelFFTfrm.show()
+
+        self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
         
         # Update the status
         self.update_status()
@@ -285,9 +304,11 @@ class App(ttk.Frame):
         self.obsManager.calc_uvcoverage()
 
         # Plot the uv-coverage in the display window
-        ax = self.pltFrm.uvCovFrm.add_axis()
-        plot_uvcov_ax(ax, self.obsManager.arrsSelected)
-        self.pltFrm.uvCovFrm.show()
+        #ax = self.pltFrm.uvCovFrm.add_axis()
+        #plot_uvcov_ax(ax, self.obsManager.arrsSelected)
+        #self.pltFrm.uvCovFrm.show()
+
+        self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
         
         # Update the status
         self.update_status()
@@ -329,9 +350,11 @@ class App(ttk.Frame):
         self.inputs.extent.set(text)
         
         # Plot the model image
-        ax = self.pltFrm.modelImgFrm.add_axis()
-        plot_image_ax(ax, self.obsManager.modelImgArr)
-        self.pltFrm.modelImgFrm.show()
+        #ax = self.pltFrm.modelImgFrm.add_axis()
+        #plot_image_ax(ax, self.obsManager.modelImgArr)
+        #self.pltFrm.modelImgFrm.show()
+
+        self.pltFrm.plot_model_image(self.obsManager.modelImgArr)
         
         # Update the status
         self.update_status()
@@ -348,10 +371,12 @@ class App(ttk.Frame):
             self.obsManager.invert_model()
         
             # Plot the model FFT
-            ax = self.pltFrm.modelFFTfrm.add_axis()
-            plot_fft_ax(ax, self.obsManager.modelFFTarr)
-            self.pltFrm.modelFFTfrm.show()
+            #ax = self.pltFrm.modelFFTfrm.add_axis()
+            #plot_fft_ax(ax, self.obsManager.modelFFTarr)
+            #self.pltFrm.modelFFTfrm.show()
         
+            self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
+            
             # Update the status
             self.update_status()
         
@@ -361,10 +386,12 @@ class App(ttk.Frame):
             self.obsManager.calc_uvcoverage()
 
             # Plot the uv-coverage
-            ax = self.pltFrm.uvCovFrm.add_axis()
-            plot_uvcov_ax(ax, self.obsManager.arrsSelected)
-            self.pltFrm.uvCovFrm.show()
+            #ax = self.pltFrm.uvCovFrm.add_axis()
+            #plot_uvcov_ax(ax, self.obsManager.arrsSelected)
+            #self.pltFrm.uvCovFrm.show()
 
+            self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
+            
             # Update the status
             self.update_status()
             
@@ -378,9 +405,11 @@ class App(ttk.Frame):
         self.obsManager.calc_beam()
         
         # Show the synthesised beam
-        ax = self.pltFrm.beamFrm.add_axis()
-        plot_image_ax(ax, self.obsManager.beamArr)
-        self.pltFrm.beamFrm.show()
+        #ax = self.pltFrm.beamFrm.add_axis()
+        #plot_image_ax(ax, self.obsManager.beamArr)
+        #self.pltFrm.beamFrm.show()
+        
+        self.pltFrm.plot_beam(np.abs(self.obsManager.beamArr))
         
         # Update the status
         self.update_status()
@@ -389,14 +418,18 @@ class App(ttk.Frame):
         self.obsManager.invert_observation()
         
         # Show the observed FFT
-        ax = self.pltFrm.obsFFTfrm.add_axis()
-        plot_fft_ax(ax, self.obsManager.obsFFTarr)
-        self.pltFrm.obsFFTfrm.show()
+        #ax = self.pltFrm.obsFFTfrm.add_axis()
+        #plot_fft_ax(ax, self.obsManager.obsFFTarr)
+        #self.pltFrm.obsFFTfrm.show()
+
+        self.pltFrm.plot_obs_fft(self.obsManager.obsFFTarr)
         
         # Show the observed image
-        ax = self.pltFrm.obsImgFrm.add_axis()
-        plot_image_ax(ax, self.obsManager.obsImgArr)
-        self.pltFrm.obsImgFrm.show()
+        #ax = self.pltFrm.obsImgFrm.add_axis()
+        #plot_image_ax(ax, self.obsManager.obsImgArr)
+        #self.pltFrm.obsImgFrm.show()
+        
+        self.pltFrm.plot_obs_image(np.abs(self.obsManager.obsImgArr))
         
         # Update the status
         self.update_status()
@@ -920,55 +953,9 @@ class InformationPanel(ttk.Frame):
         else:
             self.fftLim.set(u"%.3f k\u03bb" % (p["fftScale_lam"]/1e3))
             
-            
+
 #-----------------------------------------------------------------------------#
 class PlotFrame(ttk.Frame):
-    """Frame showing the plots produced by the virtual interferometer."""
-    
-    def __init__(self, parent, *args, **kwargs):
-        ttk.Frame.__init__(self, parent, *args, **kwargs)
-
-        # Set the expansion
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.columnconfigure(2, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
-        
-        # Create the model image panel
-        self.modelImgFrm = SingleFigFrame(self)
-        self.modelImgFrm.grid(column=0, row=0, columnspan=1, padx=5, pady=5,
-                              sticky="NSEW")
-
-        # Create the model FFT panel
-        self.modelFFTfrm = SingleFigFrame(self)
-        self.modelFFTfrm.grid(column=0, row=1, padx=5, pady=5, sticky="NSEW")
-        
-        # Create the uv-coverage panel
-        self.uvCovFrm = SingleFigFrame(self)
-        self.uvCovFrm.grid(column=1, row=0, padx=5, pady=5, sticky="NSEW")
-        
-        # Create the observed FFT panel
-        self.obsFFTfrm = SingleFigFrame(self)
-        self.obsFFTfrm.grid(column=1, row=1, padx=5, pady=5, sticky="NSEW")
-
-        # Create the synthesised beam panel
-        self.beamFrm = SingleFigFrame(self)
-        self.beamFrm.grid(column=2, row=0,  padx=5, pady=5, sticky="NSEW")
-
-        # Create the observed image panel
-        self.obsImgFrm = SingleFigFrame(self)
-        self.obsImgFrm.grid(column=2, row=1,  padx=5, pady=5, sticky="NSEW")
-
-        # Information panel
-        self.infoPanel = InformationPanel(self)
-        self.infoPanel.grid(column=0, row=3, columnspan=3, padx=5, pady=5,
-                            sticky="EW")
-        
-
-#-----------------------------------------------------------------------------#
-class PlotFrame1(ttk.Frame):
     """Frame showing the plots produced by the virtual interferometer."""
 
     def __init__(self, parent, *args, **kwargs):
@@ -977,22 +964,106 @@ class PlotFrame1(ttk.Frame):
         # Create the blank figure canvas and grid its tk canvas
         self.fig = Figure(figsize=(16.0, 10.0))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.figCanvas.show()
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
 
         # Add the axes for the plots
-        self.modAx = self.fig.add_subplot(231)
-        self.uvAx = self.fig.add_subplot(232)
-        self.beamAx = self.fig.add_subplot(233)
-        self.fftAx = self.fig.add_subplot(234)
-        self.gridAx = self.fig.add_subplot(235)
-        self.obsAx = self.fig.add_subplot(236)
+        self.modAx = self.fig.add_subplot(231, xticklabels=[], yticklabels=[])
+        self.uvAx = self.fig.add_subplot(232, xticklabels=[], yticklabels=[])
+        self.beamAx = self.fig.add_subplot(233, xticklabels=[], yticklabels=[])
+        self.fftAx = self.fig.add_subplot(234, xticklabels=[], yticklabels=[])
+        self.gridAx = self.fig.add_subplot(235, xticklabels=[], yticklabels=[])
+        self.obsAx = self.fig.add_subplot(236, xticklabels=[], yticklabels=[])
+        self.show()
+        
+        # Add the information panel
+        self.infoPanel = InformationPanel(self)
+        self.infoPanel.grid(column=0, row=1, columnspan=3, padx=5, pady=5,
+                            sticky="EW")
+
+    def _plot_image(self, ax, imgArr, title=""):
+        ax.imshow(imgArr, cmap=plt.cm.cubehelix,
+                  interpolation="nearest", origin="lower")
+        ax.set_title(title)
+        ax.set_aspect('equal')
+
+    def _plot_fft(self, ax, fftArr, title=""):
+        ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
+                  interpolation="nearest", origin="lower")
+        ax.set_title(title)
+        ax.set_xlabel(u"u (k$\lambda$)")
+        ax.set_ylabel(u"v (k$\lambda$)")
+        ax.set_aspect('equal')#, 'datalim')
+        
+    def _plot_uvcov(self, ax, arrsSelected):
+
+        for e in arrsSelected:
+            u = e["uArr_lam"]
+            v = e["vArr_lam"]
+            ax.scatter(x=u/1000, y=v/1000, marker=".", color="r",
+                       edgecolor='none', s=2)
+            ax.scatter(x=-u/1000, y=-v/1000, marker=".", color="b",
+                       edgecolor='none', s=2)
+        ax.set_xlabel(u"u (k$\lambda$)")
+        ax.set_ylabel(u"v (k$\lambda$)")
+        ax.set_aspect('equal', 'datalim')
+        ax.margins(0.02)
+        
+    def plot_model_image(self, imgArr):
+        self._plot_image(self.modAx, imgArr)
+        self.show()
+        
+    def clear_model_image(self):
+        self.modAx.cla()
+        self.show()
+
+    def plot_model_fft(self, fftArr):
+        self._plot_fft(self.fftAx, fftArr)
+        self.show()
     
+    def clear_model_fft(self):
+        self.fftAx.cla()
+        self.show()
+    
+    def plot_uvcov(self, arrsSelected):
+        self._plot_uvcov(self.uvAx, arrsSelected)
+        self.show()
+    
+    def clear_uvcov(self):
+        self.uvAx.cla()
+        self.show()
+
+    def plot_beam(self, beamArr):
+        self._plot_image(self.beamAx, beamArr)
+        self.show()
+    
+    def clear_beam(self):
+        self.beamAx.cla()
+        self.show()
+
+    def plot_obs_fft(self, fftArr):
+        self._plot_fft(self.gridAx, fftArr)
+        self.show()
+
+    def clear_obs_fft(self):
+        self.gridAx.cla()
+        self.show()
+    
+    def plot_obs_image(self, obsImgArr):
+        self._plot_image(self.obsAx, obsImgArr)
+        self.show()
+    
+    def clear_obs_image(self):
+        self.obsAx.cla()
+        self.show()
+        
     def show(self):
+        self.fig.subplots_adjust(left=0.03, right=0.96, top=0.97, bottom=0.03,
+                                  wspace=0.1,hspace=0.1)
         self.figCanvas.show()
+
     
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
