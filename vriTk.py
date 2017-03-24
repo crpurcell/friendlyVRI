@@ -12,6 +12,8 @@
 # CONTENTS:                                                                   #
 #                                                                             #
 # App (class)        ... class containing the main application logic          #
+#     applicationExit                                                         #
+#     update_status                                                           #
 #     _on_select_config                                                       #
 #     _on_sel_change                                                          #
 #     _on_plot_modFFT                                                         #
@@ -32,7 +34,7 @@
 #                                                                             #
 # StatusFrame        ... class defining status indicators and action buttons  #
 #     _draw_checkbox                                                          #
-#     set_state_dict                                                          #
+#     set_state_by_dict                                                       #
 #     set_state                                                               #
 #     _handler_plt_modFFT                                                     #
 #     _handler_plt_pwrspec                                                    #
@@ -225,8 +227,11 @@ class App(ttk.Frame):
 
         # Query the status and set the indicators
         stateDict = self.obsManager.get_status()
-        self.statFrm.set_state_dict(stateDict)
-
+        self.statFrm.set_state_by_dict(stateDict)
+        
+        # Clear the plots based on the status
+        self.pltFrm.clear_by_dict(stateDict)
+        
         # Query the scales and update the information panel
         parmDict = self.obsManager.get_scales()
         self.pltFrm.infoPanel.update(parmDict)
@@ -288,10 +293,6 @@ class App(ttk.Frame):
         self.obsManager.invert_model()
         
         # Plot the model FFT
-        #ax = self.pltFrm.modelFFTfrm.add_axis()
-        #plot_fft_ax(ax, self.obsManager.modelFFTarr)
-        #self.pltFrm.modelFFTfrm.show()
-
         self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
         
         # Update the status
@@ -301,17 +302,15 @@ class App(ttk.Frame):
         """Plot the uv-coverage for all selected array configurations"""
         
         # Calculate the uv-coverage for the selected observation parameters
-        self.obsManager.calc_uvcoverage()
+        stateDict = self.obsManager.get_status()
+        if not stateDict['statusuvCalc']:        
+            self.obsManager.calc_uvcoverage()
 
-        # Plot the uv-coverage in the display window
-        #ax = self.pltFrm.uvCovFrm.add_axis()
-        #plot_uvcov_ax(ax, self.obsManager.arrsSelected)
-        #self.pltFrm.uvCovFrm.show()
-
-        self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
+            # Plot the uv-coverage in the display window
+            self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
         
-        # Update the status
-        self.update_status()
+            # Update the status
+            self.update_status()
         
     def _on_plot_elevation(self, event=None):
         """Create a plot showing the elevation of the source as seen from 
@@ -350,10 +349,6 @@ class App(ttk.Frame):
         self.inputs.extent.set(text)
         
         # Plot the model image
-        #ax = self.pltFrm.modelImgFrm.add_axis()
-        #plot_image_ax(ax, self.obsManager.modelImgArr)
-        #self.pltFrm.modelImgFrm.show()
-
         self.pltFrm.plot_model_image(self.obsManager.modelImgArr)
         
         # Update the status
@@ -371,10 +366,6 @@ class App(ttk.Frame):
             self.obsManager.invert_model()
         
             # Plot the model FFT
-            #ax = self.pltFrm.modelFFTfrm.add_axis()
-            #plot_fft_ax(ax, self.obsManager.modelFFTarr)
-            #self.pltFrm.modelFFTfrm.show()
-        
             self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
             
             # Update the status
@@ -386,10 +377,6 @@ class App(ttk.Frame):
             self.obsManager.calc_uvcoverage()
 
             # Plot the uv-coverage
-            #ax = self.pltFrm.uvCovFrm.add_axis()
-            #plot_uvcov_ax(ax, self.obsManager.arrsSelected)
-            #self.pltFrm.uvCovFrm.show()
-
             self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
             
             # Update the status
@@ -405,10 +392,6 @@ class App(ttk.Frame):
         self.obsManager.calc_beam()
         
         # Show the synthesised beam
-        #ax = self.pltFrm.beamFrm.add_axis()
-        #plot_image_ax(ax, self.obsManager.beamArr)
-        #self.pltFrm.beamFrm.show()
-        
         self.pltFrm.plot_beam(np.abs(self.obsManager.beamArr))
         
         # Update the status
@@ -418,17 +401,9 @@ class App(ttk.Frame):
         self.obsManager.invert_observation()
         
         # Show the observed FFT
-        #ax = self.pltFrm.obsFFTfrm.add_axis()
-        #plot_fft_ax(ax, self.obsManager.obsFFTarr)
-        #self.pltFrm.obsFFTfrm.show()
-
         self.pltFrm.plot_obs_fft(self.obsManager.obsFFTarr)
         
         # Show the observed image
-        #ax = self.pltFrm.obsImgFrm.add_axis()
-        #plot_image_ax(ax, self.obsManager.obsImgArr)
-        #self.pltFrm.obsImgFrm.show()
-        
         self.pltFrm.plot_obs_image(np.abs(self.obsManager.obsImgArr))
         
         # Update the status
@@ -543,8 +518,8 @@ class ArraySelector(ttk.Frame):
     def _handler_clear_button(self):
         """Delete the selected configuration from the list box"""
 
-        self.configOutTab.clear_selected()   
-        self.event_generate("<<selection_changed>>")
+        if self.configOutTab.clear_selected():
+            self.event_generate("<<selection_changed>>")
         
     def _handler_clear_all_button(self):
         """Delete all configurations from the list box"""
@@ -807,7 +782,7 @@ class StatusFrame(ttk.Frame):
                                            width=lw, tag="tick")
             self.canvas.addtag_withtag(tag, item)
 
-    def set_state_dict(self, stateDict):
+    def set_state_by_dict(self, stateDict):
         """Use a dictionary to set the status of the indicator checkboxes."""
         
         for k, v in stateDict.items():
@@ -960,6 +935,14 @@ class PlotFrame(ttk.Frame):
 
     def __init__(self, parent, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
+
+        # Track which plots are active
+        self.pltDict = {"modelImg": 0,
+                          "modelFFT": 0,
+                          "uvCov": 0,
+                          "beam": 0,
+                          "obsFFT": 0,
+                          "obsImg": 0}
         
         # Create the blank figure canvas and grid its tk canvas
         self.fig = Figure(figsize=(16.0, 10.0))
@@ -984,14 +967,14 @@ class PlotFrame(ttk.Frame):
                             sticky="EW")
 
     def _plot_image(self, ax, imgArr, title=""):
-        ax.cla()
+        ax.clear()
         ax.imshow(imgArr, cmap=plt.cm.cubehelix,
                   interpolation="nearest", origin="lower")
         ax.set_title(title)
         ax.set_aspect('equal')
 
     def _plot_fft(self, ax, fftArr, title=""):
-        ax.cla()
+        ax.clear()
         ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
                   interpolation="nearest", origin="lower")
         ax.set_title(title)
@@ -1000,7 +983,7 @@ class PlotFrame(ttk.Frame):
         ax.set_aspect('equal')#, 'datalim')
         
     def _plot_uvcov(self, ax, arrsSelected):
-        ax.cla()
+        ax.clear()
         for e in arrsSelected:
             u = e["uArr_lam"]
             v = e["vArr_lam"]
@@ -1015,58 +998,111 @@ class PlotFrame(ttk.Frame):
         
     def plot_model_image(self, imgArr):
         self._plot_image(self.modAx, imgArr)
-        self.show()
+        self.pltDict["modelImg"] = 1
         
     def clear_model_image(self):
-        self.modAx.cla()
-        self.show()
+        self.modAx.clear()
+        self.pltDict["modelImg"] = 0
 
     def plot_model_fft(self, fftArr):
         self._plot_fft(self.fftAx, fftArr)
-        self.show()
+        self.pltDict["modelFFT"] = 1
     
     def clear_model_fft(self):
-        self.fftAx.cla()
-        self.show()
+        self.fftAx.clear()
+        self.pltDict["modelFFT"] = 0
     
     def plot_uvcov(self, arrsSelected):
         self._plot_uvcov(self.uvAx, arrsSelected)
-        self.show()
+        self.pltDict["uvCov"] = 1
     
     def clear_uvcov(self):
-        self.uvAx.cla()
-        self.show()
+        self.uvAx.clear()
+        self.pltDict["uvCov"] = 0
 
     def plot_beam(self, beamArr):
         self._plot_image(self.beamAx, beamArr)
-        self.show()
+        self.pltDict["beam"] = 1
     
     def clear_beam(self):
-        self.beamAx.cla()
-        self.show()
+        self.beamAx.clear()
+        self.pltDict["beam"] = 0
 
     def plot_obs_fft(self, fftArr):
         self._plot_fft(self.gridAx, fftArr)
-        self.show()
+        self.pltDict["obsFFT"] = 1
 
     def clear_obs_fft(self):
-        self.gridAx.cla()
-        self.show()
+        self.gridAx.clear()
+        self.pltDict["obsFFT"] = 0
     
     def plot_obs_image(self, obsImgArr):
         self._plot_image(self.obsAx, obsImgArr)
-        self.show()
+        self.pltDict["obsImg"] = 1
     
     def clear_obs_image(self):
-        self.obsAx.cla()
-        self.show()
+        self.obsAx.clear()
+        self.pltDict["obsImg"] = 0
         
     def show(self):
         self.fig.subplots_adjust(left=0.03, right=0.96, top=0.97, bottom=0.03,
                                   wspace=0.1,hspace=0.1)
         self.figCanvas.show()
 
-    
+    def clear_by_dict(self, stateDict):
+        """Use a dictionary toclear downstream plots based on state."""
+
+        # Track which plots need to be cleared so we don't make multiple calls
+        self.clearDict = {"modelImg": 0, "modelFFT": 0, "uvCov": 0,
+                          "beam": 0, "obsFFT": 0, "obsImg": 0}
+
+        # Clear the downstream plots base on process status and plot status
+        if not stateDict["statusObsDone"]:
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+        if not stateDict["statusuvGrid"]:
+            self.clearDict["obsFFT"] =  self.pltDict["obsFFT"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+            self.clearDict["beam"] =  self.pltDict["beam"]
+        if not stateDict.get("statusModelFFT", 1):
+            self.clearDict["modelFFT"] =  self.pltDict["modelFFT"]
+            self.clearDict["obsFFT"] =  self.pltDict["obsFFT"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+            self.clearDict["beam"] =  self.pltDict["beam"]
+        if not stateDict.get("statusSelection", 1):
+            self.clearDict["uvCov"] =  self.pltDict["uvCov"]
+            self.clearDict["obsFFT"] =  self.pltDict["obsFFT"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+            self.clearDict["beam"] =  self.pltDict["beam"]
+        if not stateDict.get("statusuvCalc", 1):
+            self.clearDict["uvCov"] =  self.pltDict["uvCov"]
+            self.clearDict["obsFFT"] =  self.pltDict["obsFFT"]
+            self.clearDict["beam"] =  self.pltDict["beam"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+        if not stateDict.get("statusBeam", 1):
+            self.clearDict["beam"] =  self.pltDict["beam"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+        if not stateDict.get("statusModel", 1):
+            self.clearDict["modelImg"] =  self.pltDict["modelImg"]
+            self.clearDict["modelFFT"] =  self.pltDict["modelFFT"]
+            self.clearDict["obsImg"] =  self.pltDict["obsImg"]
+            self.clearDict["beam"] =  self.pltDict["beam"]
+
+        # Clear the relevant plots and show 
+        if self.clearDict["modelImg"]:
+            self.clear_model_image()
+        if self.clearDict["modelFFT"]:
+            self.clear_model_fft()
+        if self.clearDict["uvCov"]:
+            self.clear_uvcov()
+        if self.clearDict["beam"]:
+            self.clear_beam()
+        if self.clearDict["obsFFT"]:
+            self.clear_obs_fft()
+        if self.clearDict["obsImg"]:
+            self.clear_obs_image()
+        self.show()
+
+
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()

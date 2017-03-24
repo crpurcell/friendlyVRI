@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 14-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 24-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -218,15 +218,15 @@ class ScrolledTreeTab(ttk.Frame):
         self.insert_rows(arr, colNames)
 
     def clear_selected(self):
-        """Clear all the entries from the table."""
-        
+        """Clear all the entries from the table."""        
         try:
             idx = self.tree.selection()
             self.tree.delete(idx)
             self.rowSelected = None
             self.textSelected = None
+            return idx
         except Exception:
-            pass
+            return None
         
     def clear_entries(self):
         """Clear all the entries from the table."""
@@ -238,9 +238,8 @@ class ScrolledTreeTab(ttk.Frame):
             self.rowSelected = None
         except Exception:
             pass
-            
 
-
+        
 #-----------------------------------------------------------------------------#
 class ScrolledTreeView(ttk.Frame):
     """A ttk.Treeview with scrollbars. Selecting a row generates a virtual
