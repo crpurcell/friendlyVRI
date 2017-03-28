@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 17-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 28-Mar-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -21,6 +21,7 @@
 #      get_obs_parms        ... get a dict of common parameters               #
 #      calc_uvcoverage      ... calculate the uv-coverage for selected arrays #
 #      load_model_image     ... load a model image                            #
+#      set_pixscale         ... sat a new pixel scale for the model
 #      invert_model         ... calculate the FFT of the model image          #
 #      grid_uvcoverage      ... grid the uv-coverage onto the image grid      #
 #      calc_beam            ... calculate the beam image                      #
@@ -186,9 +187,6 @@ class observationManager:
     def _reset_model_vars(self):
         """Reset the variables associated with the model."""
         
-        self.modelImgArr = None
-        self.nX = None
-        self.nY = None
         self.pixScaleImg_asec = None
         self.modelFFTarr = None
         self.fftScale_lam = None
@@ -474,8 +472,11 @@ class observationManager:
         e.g.: PNG, JPEG, TIFF, GIF and BMP. Images can be rectangular, but are
         assumed to have square pixels."""
 
-        # Reset the downstream model variables
+        # Reset the downstream model and the current model variables
         self._reset_model_vars()
+        self.modelImgArr = None
+        self.nX = None
+        self.nY = None
         
         # Set the downstream status flags
         self.statusModel = False
@@ -507,7 +508,30 @@ class observationManager:
         
         # Set the status of the model image & FFT flags to True
         self.statusModel = True
+
+    def set_pixscale(self, pixScaleImg_asec=0.5):
+        """Set a new value for the size of the pixels in the model image."""
+
+        # Reset the downstream model variables
+        self._reset_model_vars()
         
+        # Set the downstream status flags
+        self.statusModelFFT = False
+        self.statusuvGrid = False
+        self.statusBeam = False
+        self.statusObsDone = False
+
+        # Set the new pixel scale
+        self.pixScaleImg_asec = pixScaleImg_asec
+        
+        # Print the model image parameters
+        if self.verbose:
+            print ("\nModel Image Parameters:")
+            print("Pixel scale = %s" % (ang2str(self.pixScaleImg_asec/3600.0)))
+            print("Image size = %d x %d pixels [%s x %s]" % (self.nX, self.nY,
+                                ang2str(self.nX*self.pixScaleImg_asec/3600.0),
+                                ang2str(self.nY*self.pixScaleImg_asec/3600.0)))
+
     def invert_model(self):
         """Calculate the 2D Fast Fourier Transform of the model image."""
         

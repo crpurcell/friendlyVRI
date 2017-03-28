@@ -16,6 +16,8 @@
 #     update_status                                                           #
 #     _on_select_config                                                       #
 #     _on_sel_change                                                          #
+#     _on_obsparm_change                                                      #
+#     _on_pixscale_change                                                     #
 #     _on_plot_modFFT                                                         #
 #     _on_plot_uvcov                                                          #
 #     _on_plot_elevation                                                      #
@@ -195,7 +197,9 @@ class App(ttk.Frame):
         self.parent.bind("<<selection_changed>>",
                   lambda event : self._on_sel_change(event))
         self.parent.bind("<<obsparm_changed>>",
-                  lambda event : self._on_obsparm_change(event))        
+                  lambda event : self._on_obsparm_change(event))    
+        self.parent.bind("<<pixscale_changed>>",
+                  lambda event : self._on_pixscale_change(event))        
         self.parent.bind("<<plot_modFFT>>",
                   lambda event : self._on_plot_modFFT(event))
         self.parent.bind("<<plot_uvcoverage>>",
@@ -298,7 +302,27 @@ class App(ttk.Frame):
         
     def _on_pixscale_change(self, event=None):
         """When the pixel scale is changed, unload the model and FFT."""
-        pass
+
+        # Only operate if a model is already loaded
+        stateDict = self.obsManager.get_status()
+        if not stateDict["statusModel"]:
+            return
+
+        # Reset the pixel scale
+        pixScale_asec = self.inputs.pixScale_asec.get()
+        self.obsManager.set_pixscale(pixScale_asec)
+        
+        # Set the extent label in the load frame
+        pixScaleImg_deg = self.obsManager.pixScaleImg_asec / 3600.0
+        nX = self.obsManager.nX
+        nY = self.obsManager.nY
+        text = " %d x %d pix  /  %s x %s" % (nX, nY,
+                                             ang2str(nX * pixScaleImg_deg),
+                                             ang2str(nY * pixScaleImg_deg))
+        self.inputs.extent.set(text)
+        
+        # Update the status
+        self.update_status()
         
     def _on_plot_modFFT(self, event=None):
         """Show the FFT of the model image."""
@@ -369,9 +393,6 @@ class App(ttk.Frame):
         
         # Update the status
         self.update_status()
-
-        # Change the icon of the load model button
-        self.inputs._change_icon()
         
     def _on_do_observation(self, event=None):
         """Perform the bulk of the observing steps"""
@@ -384,7 +405,8 @@ class App(ttk.Frame):
             # Plot the model FFT
             parmDict = self.obsManager.get_scales()
             lim_kl = parmDict["fftScale_lam"]/1e3
-            self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr, limit=lim_kl)
+            self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr,
+                                       limit=lim_kl)
             
             # Update the status
             self.update_status()
@@ -623,25 +645,11 @@ class ObsInputs(ttk.Frame):
                           sticky="EW")
 
         # Browse and load buttons
-        #buttonImage = Image.open('Imports/folder.gif')
-        #browsePhoto = ImageTk.PhotoImage(buttonImage)
-        #self.browseBtn = ttk.Button(self, image=browsePhoto,
-        #                            command=self._handler_browse_button)
-        #self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
-        #self.browseBtn.image = browsePhoto
-        #buttonImage = Image.open('Imports/load.gif')
-        #self.loadPhoto = ImageTk.PhotoImage(buttonImage)
-        #self.loadBtn = ttk.Button(self, image=self.loadPhoto,
-        #                          command=self._handler_load_button)
-        #self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
-        #self.loadBtn.image = self.loadPhoto
-
-        # Browse and load buttons
         self.browsePhoto = tk.PhotoImage(file='Imports/folder.gif')
         self.browseBtn = ttk.Button(self, image=self.browsePhoto,
                                     command=self._handler_browse_button)
         self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
-        self.loadPhoto = tk.PhotoImage(file='Imports/load.gif')
+        self.loadPhoto = tk.PhotoImage(file='Imports/reload.gif')
         self.loadBtn = ttk.Button(self, image=self.loadPhoto,
                                   command=self._handler_load_button)
         self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
@@ -651,21 +659,20 @@ class ObsInputs(ttk.Frame):
         self.pixScaLab.grid(column=7, row=1, columnspan=1, padx=5, pady=5,
                             sticky="E")
         self.pixScale_asec = tk.DoubleVar()
+        self.pixScale_asec.trace("w", lambda dummy1, dummy2, dummy3:
+                            self.event_generate("<<pixscale_changed>>"))
         self.pixScale_asec.set(1.0)
         self.pixScaEnt = ttk.Entry(self, width=5,
                                    textvariable=self.pixScale_asec)
         self.pixScaEnt.grid(column=8, row=1, columnspan=1, padx=5, pady=5,
                             sticky="W")
-
+        
         # Scale information
         self.extent = tk.StringVar()
         self.extent.set("")
         self.extentLab = ttk.Label(self, textvariable=self.extent)
         self.extentLab.grid(column=9, row=1, columnspan=5, padx=5, pady=5,
                             sticky="E")
-
-    def _on_obsparm_change(self):
-        self.event_generate("<<obsparm_changed>>")
         
     def _change_icon(self):
         pass
@@ -1038,14 +1045,16 @@ class PlotFrame(ttk.Frame):
         ax.set_aspect('equal')#, 'datalim')
         
     def _plot_uvcov(self, ax, arrsSelected):
+        colLst=["b", "g", "r", "c", "m", "y", "k"]
+        
         ax.clear()
-        for e in arrsSelected:
+        for i, e in enumerate(arrsSelected):
             u = e["uArr_lam"]
             v = e["vArr_lam"]
-            ax.scatter(x=u/1000, y=v/1000, marker=".", color="r",
-                       edgecolor='none', s=2)
-            ax.scatter(x=-u/1000, y=-v/1000, marker=".", color="b",
-                       edgecolor='none', s=2)
+            ax.scatter(x=u/1000, y=v/1000, marker=".", edgecolor='none', s=2,
+                       color=colLst[i%len(colLst)])
+            ax.scatter(x=-u/1000, y=-v/1000, marker=".", edgecolor='none', s=2,
+                       color=colLst[i%len(colLst)])
         ax.set_xlabel(u"u (k$\lambda$)")
         ax.set_ylabel(u"v (k$\lambda$)")
         ax.set_aspect('equal', 'datalim')
