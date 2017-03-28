@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 24-Mar-2017 by cpurcell                                           #
+# MODIFIED: 28-Mar-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -112,7 +112,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from PIL import ImageTk
+#from PIL import ImageTk
 
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -182,7 +182,7 @@ class App(ttk.Frame):
         # The observationManager class can be used stand-alone from an
         # iPython terminal and replicates the functionality of the GUI.
         # The tkinter GUI serves as a controller for this class.
-        self.obsManager = observationManager(verbose=True, debug=True)
+        self.obsManager = observationManager(verbose=False, debug=False)
         vals = self.obsManager.arrsAvailable.values()
         configLst = zip([x["telescope"] for x in vals],
                         [x["config"] for x in vals])        
@@ -194,6 +194,8 @@ class App(ttk.Frame):
                   lambda event : self._on_select_config(event))
         self.parent.bind("<<selection_changed>>",
                   lambda event : self._on_sel_change(event))
+        self.parent.bind("<<obsparm_changed>>",
+                  lambda event : self._on_obsparm_change(event))        
         self.parent.bind("<<plot_modFFT>>",
                   lambda event : self._on_plot_modFFT(event))
         self.parent.bind("<<plot_uvcoverage>>",
@@ -281,6 +283,18 @@ class App(ttk.Frame):
         
         # Update the status
         self.update_status()
+
+    def _on_obsparm_change(self, event=None):
+        """When the observation parameters changes in the GUI, reset the 
+        calculations."""
+
+        # Reset the common parameters
+        self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
+                                      self.inputs.sampRt_s.get(),
+                                      self.inputs.dec_deg.get())
+        
+        # Update the status
+        self.update_status()
         
     def _on_pixscale_change(self, event=None):
         """When the pixel scale is changed, unload the model and FFT."""
@@ -293,7 +307,9 @@ class App(ttk.Frame):
         self.obsManager.invert_model()
         
         # Plot the model FFT
-        self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
+        parmDict = self.obsManager.get_scales()
+        lim_kl = parmDict["fftScale_lam"]/1e3
+        self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr, limit=lim_kl)
         
         # Update the status
         self.update_status()
@@ -366,7 +382,9 @@ class App(ttk.Frame):
             self.obsManager.invert_model()
         
             # Plot the model FFT
-            self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr)
+            parmDict = self.obsManager.get_scales()
+            lim_kl = parmDict["fftScale_lam"]/1e3
+            self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr, limit=lim_kl)
             
             # Update the status
             self.update_status()
@@ -385,8 +403,16 @@ class App(ttk.Frame):
         # Grid the uv-coverage to make a mask
         self.obsManager.grid_uvcoverage()
         
+        # Apply the gridded uv-coverage and invert
+        self.obsManager.invert_observation()
+        
         # Update the status
         self.update_status()
+        
+        # Show the observed FFT
+        parmDict = self.obsManager.get_scales()
+        lim_kl = parmDict["fftScale_lam"]/1e3
+        self.pltFrm.plot_obs_fft(self.obsManager.obsFFTarr, limit=lim_kl)
         
         # Calculate the PSF
         self.obsManager.calc_beam()
@@ -396,12 +422,6 @@ class App(ttk.Frame):
         
         # Update the status
         self.update_status()
-        
-        # Apply the gridded uv-coverage and invert
-        self.obsManager.invert_observation()
-        
-        # Show the observed FFT
-        self.pltFrm.plot_obs_fft(self.obsManager.obsFFTarr)
         
         # Show the observed image
         self.pltFrm.plot_obs_image(np.abs(self.obsManager.obsImgArr))
@@ -545,6 +565,8 @@ class ObsInputs(ttk.Frame):
         self.freqLab = ttk.Label(self, text="Observing Frequency (MHz):")
         self.freqLab.grid(column=1, row=0, padx=5, pady=5, sticky="E")
         self.freq_MHz = tk.StringVar()
+        self.freq_MHz.trace("w", lambda dummy1, dummy2, dummy3:
+                            self.event_generate("<<obsparm_changed>>"))
         self.freq_MHz.set(1420.0)
         self.freqEnt = ttk.Entry(self, width=10, textvariable=self.freq_MHz)
         self.freqEnt.grid(column=2, row=0, padx=5, pady=5, sticky="EW")
@@ -554,6 +576,8 @@ class ObsInputs(ttk.Frame):
                                    text="Source Declination (deg):")
         self.decSrcLab.grid(column=1, row=1, padx=5, pady=5, sticky="E")
         self.dec_deg = tk.StringVar()
+        self.dec_deg.trace("w", lambda dummy1, dummy2, dummy3:
+                           self.event_generate("<<obsparm_changed>>"))
         self.dec_deg.set(20.0)
         self.decSrcEnt = ttk.Entry(self, width=10, textvariable=self.dec_deg)
         self.decSrcEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
@@ -561,9 +585,11 @@ class ObsInputs(ttk.Frame):
         # Sampling rate
         self.sampRtLab = ttk.Label(self, text="Sampling Rate (s):")
         self.sampRtLab.grid(column=4, row=0, padx=5, pady=5, sticky="E")
-        sampRtLst_s = ["10", "60", "60", "100", "300", "600", "1200", "1800",
+        sampRtLst_s = ["10", "30", "60", "100", "300", "600", "1200", "1800",
                        "3600"]
         self.sampRt_s = tk.StringVar()
+        self.sampRt_s.trace("w", lambda dummy1, dummy2, dummy3:
+                            self.event_generate("<<obsparm_changed>>"))
         self.sampRtComb = ttk.Combobox(self, state="readonly",
                                        textvariable=self.sampRt_s,
                                        values=sampRtLst_s, width=7)
@@ -578,6 +604,8 @@ class ObsInputs(ttk.Frame):
         #             "0.5", "1.0", "1.5", "2.0"]
         robustLst = ["None"]
         self.robust = tk.StringVar()
+        self.robust.trace("w", lambda dummy1, dummy2, dummy3:
+                          self.event_generate("<<obsparm_changed>>"))
         self.robustComb = ttk.Combobox(self, state="readonly",
                                        textvariable=self.robust,
                                        values=robustLst, width=15)
@@ -595,19 +623,29 @@ class ObsInputs(ttk.Frame):
                           sticky="EW")
 
         # Browse and load buttons
-        buttonImage = Image.open('Imports/folder.gif')
-        browsePhoto = ImageTk.PhotoImage(buttonImage)
-        self.browseBtn = ttk.Button(self, image=browsePhoto,
+        #buttonImage = Image.open('Imports/folder.gif')
+        #browsePhoto = ImageTk.PhotoImage(buttonImage)
+        #self.browseBtn = ttk.Button(self, image=browsePhoto,
+        #                            command=self._handler_browse_button)
+        #self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
+        #self.browseBtn.image = browsePhoto
+        #buttonImage = Image.open('Imports/load.gif')
+        #self.loadPhoto = ImageTk.PhotoImage(buttonImage)
+        #self.loadBtn = ttk.Button(self, image=self.loadPhoto,
+        #                          command=self._handler_load_button)
+        #self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
+        #self.loadBtn.image = self.loadPhoto
+
+        # Browse and load buttons
+        self.browsePhoto = tk.PhotoImage(file='Imports/folder.gif')
+        self.browseBtn = ttk.Button(self, image=self.browsePhoto,
                                     command=self._handler_browse_button)
         self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
-        self.browseBtn.image = browsePhoto
-        buttonImage = Image.open('Imports/load.gif')
-        self.loadPhoto = ImageTk.PhotoImage(buttonImage)
+        self.loadPhoto = tk.PhotoImage(file='Imports/load.gif')
         self.loadBtn = ttk.Button(self, image=self.loadPhoto,
                                   command=self._handler_load_button)
         self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
-        self.loadBtn.image = self.loadPhoto
-
+        
         # Pixel scale
         self.pixScaLab = ttk.Label(self, text="Pixel Scale (arcsec):")
         self.pixScaLab.grid(column=7, row=1, columnspan=1, padx=5, pady=5,
@@ -625,12 +663,16 @@ class ObsInputs(ttk.Frame):
         self.extentLab = ttk.Label(self, textvariable=self.extent)
         self.extentLab.grid(column=9, row=1, columnspan=5, padx=5, pady=5,
                             sticky="E")
-    
+
+    def _on_obsparm_change(self):
+        self.event_generate("<<obsparm_changed>>")
+        
     def _change_icon(self):
-        buttonImage = Image.open('Imports/reload.gif')
-        self.reloadPhoto = ImageTk.PhotoImage(buttonImage)
-        self.loadBtn.configure(image=self.reloadPhoto)
-        self.loadBtn.image = self.reloadPhoto
+        pass
+        #buttonImage = Image.open('Imports/reload.gif')
+        #self.reloadPhoto = ImageTk.PhotoImage(buttonImage)
+        #self.loadBtn.configure(image=self.reloadPhoto)
+        #self.loadBtn.image = self.reloadPhoto
         
     def _handler_browse_button(self):
         """Open the file selection dialog and set the session dir."""
@@ -938,27 +980,34 @@ class PlotFrame(ttk.Frame):
 
         # Track which plots are active
         self.pltDict = {"modelImg": 0,
-                          "modelFFT": 0,
-                          "uvCov": 0,
-                          "beam": 0,
-                          "obsFFT": 0,
-                          "obsImg": 0}
+                        "modelFFT": 0,
+                        "uvCov": 0,
+                        "beam": 0,
+                        "obsFFT": 0,
+                        "obsImg": 0}
         
         # Create the blank figure canvas and grid its tk canvas
-        self.fig = Figure(figsize=(16.0, 10.0))
+        self.fig = Figure(figsize=(15.0, 9.0))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
-
+        
         # Add the axes for the plots
-        self.modAx = self.fig.add_subplot(231, xticklabels=[], yticklabels=[])
-        self.uvAx = self.fig.add_subplot(232, xticklabels=[], yticklabels=[])
-        self.beamAx = self.fig.add_subplot(233, xticklabels=[], yticklabels=[])
-        self.fftAx = self.fig.add_subplot(234, xticklabels=[], yticklabels=[])
-        self.gridAx = self.fig.add_subplot(235, xticklabels=[], yticklabels=[])
-        self.obsAx = self.fig.add_subplot(236, xticklabels=[], yticklabels=[])
+        self.modAx = None
+        self.modAx = None
+        self.uvAx = None
+        self.beamAx = None
+        self.fftAx = None
+        self.gridAx = None
+        self.obsAx = None
+        self.modAx = self.clear_model_image()
+        self.uvAx = self.clear_uvcov()
+        self.beamAx = self.clear_beam()
+        self.fftAx = self.clear_model_fft()
+        self.gridAx = self.clear_obs_fft()
+        self.obsAx = self.clear_obs_image()
         self.show()
         
         # Add the information panel
@@ -970,13 +1019,19 @@ class PlotFrame(ttk.Frame):
         ax.clear()
         ax.imshow(imgArr, cmap=plt.cm.cubehelix,
                   interpolation="nearest", origin="lower")
+        plt.setp(ax.get_yticklabels(), visible=False)
+        plt.setp(ax.get_xticklabels(), visible=False)
         ax.set_title(title)
         ax.set_aspect('equal')
 
-    def _plot_fft(self, ax, fftArr, title=""):
+    def _plot_fft(self, ax, fftArr, limit=None, title=""):
+        if limit:
+            extent=[-limit, limit, -limit, limit]
+        else:
+            extent=None
         ax.clear()
         ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
-                  interpolation="nearest", origin="lower")
+                  interpolation="nearest", origin="lower", extent=extent)
         ax.set_title(title)
         ax.set_xlabel(u"u (k$\lambda$)")
         ax.set_ylabel(u"v (k$\lambda$)")
@@ -1001,52 +1056,88 @@ class PlotFrame(ttk.Frame):
         self.pltDict["modelImg"] = 1
         
     def clear_model_image(self):
-        self.modAx.clear()
+        if self.modAx:
+            self.modAx.clear()
+        else:
+            self.modAx = self.fig.add_subplot(231)
+        plt.setp(self.modAx.get_yticklabels(), visible=False)
+        plt.setp(self.modAx.get_xticklabels(), visible=False)
         self.pltDict["modelImg"] = 0
+        return self.modAx
 
-    def plot_model_fft(self, fftArr):
-        self._plot_fft(self.fftAx, fftArr)
+    def plot_model_fft(self, fftArr, limit=None):
+        self._plot_fft(self.fftAx, fftArr, limit=limit)
         self.pltDict["modelFFT"] = 1
     
     def clear_model_fft(self):
-        self.fftAx.clear()
+        if self.fftAx:
+            self.fftAx.clear()
+        else:
+            self.fftAx = self.fig.add_subplot(234)
+        plt.setp(self.fftAx.get_yticklabels(), visible=False)
+        plt.setp(self.fftAx.get_xticklabels(), visible=False)
         self.pltDict["modelFFT"] = 0
+        return self.fftAx
     
     def plot_uvcov(self, arrsSelected):
         self._plot_uvcov(self.uvAx, arrsSelected)
         self.pltDict["uvCov"] = 1
     
     def clear_uvcov(self):
-        self.uvAx.clear()
+        if self.uvAx:
+            self.uvAx.clear()
+        else:
+            self.uvAx = self.fig.add_subplot(232)
+        plt.setp(self.uvAx.get_yticklabels(), visible=False)
+        plt.setp(self.uvAx.get_xticklabels(), visible=False)
         self.pltDict["uvCov"] = 0
-
+        return self.uvAx
+        
     def plot_beam(self, beamArr):
         self._plot_image(self.beamAx, beamArr)
         self.pltDict["beam"] = 1
     
     def clear_beam(self):
-        self.beamAx.clear()
+        if self.beamAx:
+            self.beamAx.clear()
+        else:
+            self.beamAx = self.fig.add_subplot(233)
+        plt.setp(self.beamAx.get_yticklabels(), visible=False)
+        plt.setp(self.beamAx.get_xticklabels(), visible=False)
         self.pltDict["beam"] = 0
+        return self.beamAx
 
-    def plot_obs_fft(self, fftArr):
-        self._plot_fft(self.gridAx, fftArr)
+    def plot_obs_fft(self, fftArr, limit=None):
+        self._plot_fft(self.gridAx, fftArr, limit=limit)
         self.pltDict["obsFFT"] = 1
 
     def clear_obs_fft(self):
-        self.gridAx.clear()
+        if self.gridAx:
+            self.gridAx.clear()
+        else:
+            self.gridAx = self.fig.add_subplot(235)
+        plt.setp(self.gridAx.get_yticklabels(), visible=False)
+        plt.setp(self.gridAx.get_xticklabels(), visible=False)
         self.pltDict["obsFFT"] = 0
+        return self.gridAx
     
     def plot_obs_image(self, obsImgArr):
         self._plot_image(self.obsAx, obsImgArr)
         self.pltDict["obsImg"] = 1
     
     def clear_obs_image(self):
-        self.obsAx.clear()
+        if self.obsAx:
+            self.obsAx.clear()
+        else:
+            self.obsAx = self.fig.add_subplot(236)
+        plt.setp(self.obsAx.get_yticklabels(), visible=False)
+        plt.setp(self.obsAx.get_xticklabels(), visible=False)
         self.pltDict["obsImg"] = 0
+        return self.obsAx
         
     def show(self):
-        self.fig.subplots_adjust(left=0.03, right=0.96, top=0.97, bottom=0.03,
-                                  wspace=0.1,hspace=0.1)
+        self.fig.subplots_adjust(left=0.05, right=0.97, top=0.97, bottom=0.07,
+                                  wspace=0.16, hspace=0.16)
         self.figCanvas.show()
 
     def clear_by_dict(self, stateDict):

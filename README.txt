@@ -8,7 +8,8 @@
 #-----------------------------------------------------------------------------#
 
 This application is built to help astronomers investigate the effect of
-combining different array configurations when observing an astronomical object.
+combining different array configurations when observing an astronomical object
+using an interferometer.
 
 The graphical interface is written using the tkinter library for maximum
 portability.
@@ -18,7 +19,7 @@ TODO:
 * ScatterPlot widget:
 DONE  - equalise X & y scales
 DONE  - Format of text labels and margins
-  - Alternative vertical text for buggy python3
+  - Alternative vertical text for older Tkinter.
 
 * TreeTables:
 DONE  - Format of column spacing & text.
@@ -34,7 +35,7 @@ DONE  - Limit significant figures.
 DONE - flags showing & controlling steps done
 DONE - catch obvious errors
  - mask uv-coverage for elevation limits.
-DIBE - status lights
+DONE - status lights
  - Create ATCA array configuration files.
  - Limit max & min values in vriCalc
  - Limt max & min value in vriTk
