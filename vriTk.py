@@ -7,13 +7,15 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 28-Mar-2017 by cpurcell                                           #
+# MODIFIED: 29-Mar-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 # App (class)        ... class containing the main application logic          #
-#     applicationExit                                                         #
-#     update_status                                                           #
+#     _applicationExit                                                        #
+#     _show_about                                                             #
+#     _show_help                                                              #
+#     _update_status                                                          #
 #     _on_select_config                                                       #
 #     _on_sel_change                                                          #
 #     _on_obsparm_change                                                      #
@@ -30,9 +32,7 @@
 #     _handler_clear_all_button                                               #
 #                                                                             #
 # ObsInputs          ... class exposing the remaining observation inputs      #
-#     _change_icon                                                            #
-#     _handler_browse_button                                                  #
-#     _handler_load_button                                                    #
+#     _handler_browse_button                                                 #
 #                                                                             #
 # StatusFrame        ... class defining status indicators and action buttons  #
 #     _draw_checkbox                                                          #
@@ -100,6 +100,7 @@ try:               # Python 2.7x
     import tkMessageBox
     import tkFileDialog
     import tkSimpleDialog
+    from ScrolledText import ScrolledText as tkScrolledText
 except Exception:  # Python 3.x
     import tkinter as tk
     from tkinter import ttk
@@ -107,14 +108,15 @@ except Exception:  # Python 3.x
     import tkinter.messagebox as tkMessageBox
     import tkinter.filedialog as tkFileDialog
     import tkinter.simpledialog as tkSimpleDialog
+    import tkinter.scrolledtext as tkScrolledText
 import numpy as np
 import matplotlib as mpl
 mpl.use("TkAgg")
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-#from PIL import ImageTk
 
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -124,22 +126,30 @@ from Imports.vriCalc import *
 class App(ttk.Frame):
     """Class defining the Virtual Radio Interferometer application.
 
-    This class creates a root window to show the inputs and outputs of the 
-    virtual interferometer and a secondary TopLevel window, used to choose and
-    accumulate array configurations, and set observing parameters."""
-
+    This class creates a root window used to set observation parameters, choose
+    and accumulate array configurations and load a model image. A secondary 
+    Toplevel window is used to display the input, output and intermediate
+    Fourier transforms and images."""
+    
     def __init__(self, parent, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.parent.title("Friendly VRI: Control Window")
         self.obsManager = None
 
-        # Set the expansion properties
+        # Set the grid expansion properties
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.rowconfigure(2, weight=1)
-                
+
+        # Menu bar
+        self.menuBar = tk.Menu(self)
+        self.menuBar.add_command(label="About", command=self._show_about)
+        self.menuBar.add_command(label="Help", command=self._show_help)
+        self.menuBar.add_command(label="Quit", command=self._applicationExit)
+        self.parent.config(menu=self.menuBar)
+        
         # Array selector interface
         self.selector =  ArraySelector(self)
         self.selector.grid(column=0, row=0, padx=10, pady=5, sticky="EW")
@@ -161,7 +171,7 @@ class App(ttk.Frame):
         # Create the display window
         self.dispWin = tk.Toplevel(self)
         self.dispWin.title("Friendly VRI: Display Window")
-        self.dispWin.protocol("WM_DELETE_WINDOW", self.applicationExit)
+        self.dispWin.protocol("WM_DELETE_WINDOW", self._applicationExit)
         self.dispWin.columnconfigure(0, weight=1)
         self.dispWin.rowconfigure(0, weight=1)
 
@@ -173,7 +183,7 @@ class App(ttk.Frame):
         if False:
             self.testWin = tk.Toplevel(self)
             self.testWin.title(" TEST WINDOW ")
-            self.testWin.protocol("WM_DELETE_WINDOW", self.applicationExit)
+            self.testWin.protocol("WM_DELETE_WINDOW", self._applicationExit)
             self.testWin.resizable(True, True)
             self.testWin.columnconfigure(0, weight=1)
             self.testWin.rowconfigure(0, weight=1)
@@ -221,12 +231,48 @@ class App(ttk.Frame):
                                 self.dispWin.winfo_height())
         self.dispWin.resizable(True, True)
         
-    def applicationExit(self):
-        """Exit the application cleanly if the display window is closed."""
+    def _applicationExit(self):
+        """Exit the application cleanly if the window is closed."""
         
         self.parent.destroy()
 
-    def update_status(self):
+    def _show_about(self):
+        """Show the about text in a new window."""
+        
+        self.aboutWin = tk.Toplevel(self)
+        self.aboutWin.title("About Friendly VRI")
+        self.aboutTxt = tkScrolledText(self.aboutWin)
+        self.aboutTxt.config(state="normal")
+        with open('README.txt','r') as f:
+            text = f.read()
+        self.aboutTxt.insert('1.0', text)
+        self.aboutTxt.config(state="disabled")
+        self.aboutTxt.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        self.closeBtn = ttk.Button(self.aboutWin, text='Close',
+                           command=self.aboutWin.destroy)
+        self.closeBtn.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.aboutWin.rowconfigure(0, weight=1)
+        self.aboutWin.columnconfigure(0, weight=1)
+        
+    def _show_help(self):
+        """Show the help text in a new window."""
+        
+        self.helpWin = tk.Toplevel(self)
+        self.helpWin.title("Help File for Friendly VRI")
+        self.helpTxt = tkScrolledText(self.helpWin)
+        self.helpTxt.config(state="normal")
+        with open('HELP.txt','r') as f:
+            text = f.read()
+        self.helpTxt.insert('1.0', text)
+        self.helpTxt.config(state="disabled")
+        self.helpTxt.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        self.closeBtn = ttk.Button(self.helpWin, text='Close',
+                           command=self.helpWin.destroy)
+        self.closeBtn.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.helpWin.rowconfigure(0, weight=1)
+        self.helpWin.columnconfigure(0, weight=1)
+        
+    def _update_status(self):
         """Update the status of the user interface, including the checkbox
         indicators, plot axes and information panels. The status of each step
         is queried from the instance of the observationManager class."""
@@ -242,7 +288,6 @@ class App(ttk.Frame):
         parmDict = self.obsManager.get_scales()
         self.pltFrm.infoPanel.update(parmDict)
         
-            
     # Event handlers bound to virtual events ---------------------------------#
     
     def _on_select_config(self, event=None):
@@ -257,7 +302,7 @@ class App(ttk.Frame):
         self.selector.antPosPlot.draw_zerolines()
         self.selector.antPosPlot.set_xlabel("East-West (km)")
         self.selector.antPosPlot.set_ylabel("North-South (km)")
-
+        
         # Show the antenna diameter and array latitude
         text = "{:.1f} m".format(d["diameter_m"])
         self.selector.antD_m.set(text)
@@ -269,7 +314,7 @@ class App(ttk.Frame):
         self.selector.maxBase_km.set(text)
         
     def _on_sel_change(self, event=None):
-        """When the selection changes in the GUI, refresh the observation
+        """When the arrays selected change in the GUI, refresh the observation
         parameters in the observation manager."""
 
         # Reset the common parameters
@@ -277,7 +322,7 @@ class App(ttk.Frame):
                                       self.inputs.sampRt_s.get(),
                                       self.inputs.dec_deg.get())
 
-        # Reset the array an hour-angle selection
+        # Reset the array and hour-angle selections
         self.obsManager.clear_all_selections()
         for selection in self.selector.configOutTab.get_all_text():
             key = "_".join(selection[:2])
@@ -286,10 +331,10 @@ class App(ttk.Frame):
             self.obsManager.select_array(key, haStart, haEnd)
         
         # Update the status
-        self.update_status()
+        self._update_status()
 
     def _on_obsparm_change(self, event=None):
-        """When the observation parameters changes in the GUI, reset the 
+        """When the observation parameters change in the GUI, reset the 
         calculations."""
 
         # Reset the common parameters
@@ -298,10 +343,10 @@ class App(ttk.Frame):
                                       self.inputs.dec_deg.get())
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
     def _on_pixscale_change(self, event=None):
-        """When the pixel scale is changed, unload the model and FFT."""
+        """When the pixel scale is changed in the GUI, clear the FFT plot."""
 
         # Only operate if a model is already loaded
         stateDict = self.obsManager.get_status()
@@ -309,6 +354,7 @@ class App(ttk.Frame):
             return
 
         # Reset the pixel scale
+        # TODO: check for float
         pixScale_asec = self.inputs.pixScale_asec.get()
         self.obsManager.set_pixscale(pixScale_asec)
         
@@ -322,7 +368,7 @@ class App(ttk.Frame):
         self.inputs.extent.set(text)
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
     def _on_plot_modFFT(self, event=None):
         """Show the FFT of the model image."""
@@ -336,7 +382,7 @@ class App(ttk.Frame):
         self.pltFrm.plot_model_fft(self.obsManager.modelFFTarr, limit=lim_kl)
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
     def _on_plot_uvcov(self, event=None):
         """Plot the uv-coverage for all selected array configurations"""
@@ -350,7 +396,7 @@ class App(ttk.Frame):
             self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
         
             # Update the status
-            self.update_status()
+            self._update_status()
         
     def _on_plot_elevation(self, event=None):
         """Create a plot showing the elevation of the source as seen from 
@@ -358,18 +404,19 @@ class App(ttk.Frame):
         pass 
         
         # DEBUG
-        fig = plt.figure(figsize=(10,10))
-        ax = fig.add_subplot(111)
-        for selection in self.selector.configOutTab.get_all_text():
-            key = "_".join(selection[:2])
-            ar =  self.obsManager.arrsAvailable[key]["antArray"]
-            ax.scatter(x=ar.Bx_m/1000, y=ar.By_m/1000, marker="o",
-                       edgecolor='k', s=15)
-            ax.set_xlabel(u"x baseline (m)")
-            ax.set_ylabel(u"y baseline (m)")
-            ax.set_aspect('equal', 'datalim')
-            ax.margins(0.02)
-        fig.show()
+        if False:
+            fig = plt.figure(figsize=(10,10))
+            ax = fig.add_subplot(111)
+            for selection in self.selector.configOutTab.get_all_text():
+                key = "_".join(selection[:2])
+                ar =  self.obsManager.arrsAvailable[key]["antArray"]
+                ax.scatter(x=ar.Bx_m/1000, y=ar.By_m/1000, marker="o",
+                           edgecolor='k', s=15)
+                ax.set_xlabel(u"x baseline (m)")
+                ax.set_ylabel(u"y baseline (m)")
+                ax.set_aspect('equal', 'datalim')
+                ax.margins(0.02)
+            fig.show()
 
     def _on_load_model(self, event=None):
         """Load a model image into the observation manager"""
@@ -392,7 +439,7 @@ class App(ttk.Frame):
         self.pltFrm.plot_model_image(self.obsManager.modelImgArr)
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
     def _on_do_observation(self, event=None):
         """Perform the bulk of the observing steps"""
@@ -409,7 +456,7 @@ class App(ttk.Frame):
                                        limit=lim_kl)
             
             # Update the status
-            self.update_status()
+            self._update_status()
         
         # Calculate the uv-coverage if not cached
         stateDict = self.obsManager.get_status()
@@ -420,7 +467,7 @@ class App(ttk.Frame):
             self.pltFrm.plot_uvcov(self.obsManager.arrsSelected)
             
             # Update the status
-            self.update_status()
+            self._update_status()
             
         # Grid the uv-coverage to make a mask
         self.obsManager.grid_uvcoverage()
@@ -429,7 +476,7 @@ class App(ttk.Frame):
         self.obsManager.invert_observation()
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
         # Show the observed FFT
         parmDict = self.obsManager.get_scales()
@@ -443,13 +490,13 @@ class App(ttk.Frame):
         self.pltFrm.plot_beam(np.abs(self.obsManager.beamArr))
         
         # Update the status
-        self.update_status()
+        self._update_status()
         
         # Show the observed image
         self.pltFrm.plot_obs_image(np.abs(self.obsManager.obsImgArr))
         
         # Update the status
-        self.update_status()
+        self._update_status()
 
         
 #-----------------------------------------------------------------------------#
@@ -651,7 +698,7 @@ class ObsInputs(ttk.Frame):
         self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
         self.loadPhoto = tk.PhotoImage(file='Imports/reload.gif')
         self.loadBtn = ttk.Button(self, image=self.loadPhoto,
-                                  command=self._handler_load_button)
+                    command=lambda: self.event_generate("<<load_model_image>>")
         self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
         
         # Pixel scale
@@ -674,13 +721,6 @@ class ObsInputs(ttk.Frame):
         self.extentLab.grid(column=9, row=1, columnspan=5, padx=5, pady=5,
                             sticky="E")
         
-    def _change_icon(self):
-        pass
-        #buttonImage = Image.open('Imports/reload.gif')
-        #self.reloadPhoto = ImageTk.PhotoImage(buttonImage)
-        #self.loadBtn.configure(image=self.reloadPhoto)
-        #self.loadBtn.image = self.reloadPhoto
-        
     def _handler_browse_button(self):
         """Open the file selection dialog and set the session dir."""
         
@@ -694,16 +734,13 @@ class ObsInputs(ttk.Frame):
                     self.modelPath = modelPath
         self.event_generate("<<load_model_image>>")
         
-    def _handler_load_button(self):      
-        """Raise a <<load_session>> virtual event in the parent window."""
-
-        self.event_generate("<<load_model_image>>")
-
         
 #-----------------------------------------------------------------------------#
 class StatusFrame(ttk.Frame):
-    """Frame presenting status indicators lights for the individual steps in
-    the application and the two main control buttons."""
+    """Frame presenting status indicators lights and action buttons for the
+    steps in the observation process."""
+
+    # TODO: Redefine the grid labels for neatness.
     
     def __init__(self, parent, boxWidth=20, gapWidth=30, yPad=25):
         ttk.Frame.__init__(self, parent)
@@ -751,14 +788,13 @@ class StatusFrame(ttk.Frame):
         y3 = yCentBtn
         self.canvas.create_line(x1, y1, x1, y3, width=2, fill="black",
                                 joinstyle=tk.MITER)
-        self.pltModFFTbtn = ttk.Button(self, text = "Plot Model FFT",
-                                       width=18,
-                                       command=self._handler_plt_modFFT)
+        self.pltModFFTbtn = ttk.Button(self, text = "Plot Model FFT", width=18,
+                        command=lambda: self.event_generate("<<plot_modFFT>>"))
         self.pltModFFTbtn.configure(state="disabled")
         self.canvas.create_window(x1, y2, window=self.pltModFFTbtn)
         self.pltPwrSpecbtn = ttk.Button(self, text = "Plot Power Spectrum",
                                         width=18,
-                                        command=self._handler_plt_pwrspec)
+                    command=lambda: self.event_generate("<<plot_powerspec>>"))
         self.pltPwrSpecbtn.configure(state="disabled")
         self.canvas.create_window(x1, y3, window=self.pltPwrSpecbtn)
         
@@ -771,12 +807,12 @@ class StatusFrame(ttk.Frame):
                                 joinstyle=tk.MITER)
         self.pltuvCovBtn = ttk.Button(self, text = "Plot uv-Coverage",
                                       width=18,
-                                      command=self._handler_plt_uvcov)
+                    command=lambda: self.event_generate("<<plot_uvcoverage>>"))
         self.pltuvCovBtn.configure(state="disabled")
         self.canvas.create_window(x1, y2, window=self.pltuvCovBtn)
         self.pltElBtn = ttk.Button(self, text = "Plot Elevation",
                                    width=18,
-                                   command=self._handler_plt_elevation)
+                    command=lambda: self.event_generate("<<plot_elevation>>"))
         self.pltElBtn.configure(state="disabled")
         self.elBtnW = self.canvas.create_window(x1, y3, window=self.pltElBtn)
         
@@ -797,22 +833,24 @@ class StatusFrame(ttk.Frame):
         self.canvas.create_line(x3, y2, x3, y3, width=2, fill="black",
                                 joinstyle=tk.MITER)
         self.obsBtn = ttk.Button(self, text = "Do Observation", width=30,
-                                 command=self._handler_observe_button)
+                    command=lambda: self.event_generate("<<do_observation>>"))
         self.obsBtn.configure(state="disabled")
         obsBtnW = self.canvas.create_window(x3, y3, window=self.obsBtn)
         
     def _draw_checkbox(self, xCent, yCent, size, tag, state=0, lw=3):
-        """Draw a checkbox on the canvas."""
+        """Draw a large checkbox on the canvas with a specified state."""
 
         r = float(size)/2.0
         
-        # Draw box & ticks
+        # Draw box
         item = self.canvas.create_rectangle(xCent-r, yCent-r,
                                             xCent+r, yCent+r,
                                             outline="black", fill="white",
                                             width=1.0, tag="checkbox")
         self.canvas.addtag_withtag(tag, item)
+        
         if state:
+            # Draw green tickmark
             item = self.canvas.create_line(xCent-r+lw, yCent+r/2-lw,
                                            xCent-r/2+lw, yCent+r-lw,
                                            xCent+r-lw, yCent-r+lw,
@@ -820,6 +858,7 @@ class StatusFrame(ttk.Frame):
                                            width=lw, tag="tick")
             self.canvas.addtag_withtag(tag, item)
         else:
+            # Draw red X
             item = self.canvas.create_line(xCent-r+lw, yCent-r+lw,
                                            xCent+r-lw, yCent+r-lw,
                                            fill="red", capstyle=tk.ROUND,
@@ -871,25 +910,7 @@ class StatusFrame(ttk.Frame):
             self.obsBtn.configure(state="enabled")
         else:
             self.obsBtn.configure(state="disabled")
-    
-    # Event handlers ---------------------------------------------------------#
-
-    def _handler_plt_modFFT(self):
-        self.event_generate("<<plot_modFFT>>")
-        
-    def _handler_plt_pwrspec(self):
-        self.event_generate("<<plot_powerspec>>")
-        
-    def _handler_plt_elevation(self):
-        self.event_generate("<<plot_elevation>>")
-        
-    def _handler_plt_uvcov(self):
-        self.event_generate("<<plot_uvcoverage>>")
-        
-    def _handler_observe_button(self):
-        self.event_generate("<<do_observation>>")
-        
-        
+            
 #-----------------------------------------------------------------------------#
 class InformationPanel(ttk.Frame):
     """Frame presenting the information on the selected arrays, input model
@@ -1045,7 +1066,7 @@ class PlotFrame(ttk.Frame):
         ax.set_aspect('equal')#, 'datalim')
         
     def _plot_uvcov(self, ax, arrsSelected):
-        colLst=["b", "g", "r", "c", "m", "y", "k"]
+        colLst=["r", "b", "g", "m", "c", "y", "k"]
         
         ax.clear()
         for i, e in enumerate(arrsSelected):
