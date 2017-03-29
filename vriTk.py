@@ -698,7 +698,7 @@ class ObsInputs(ttk.Frame):
         self.browseBtn.grid(column=12, row=0, padx=5, pady=5, sticky="E")
         self.loadPhoto = tk.PhotoImage(file='Imports/reload.gif')
         self.loadBtn = ttk.Button(self, image=self.loadPhoto,
-                    command=lambda: self.event_generate("<<load_model_image>>")
+                    command=lambda: self.event_generate("<<load_model_image>>"))
         self.loadBtn.grid(column=13, row=0, padx=5, pady=5, sticky="E")
         
         # Pixel scale
