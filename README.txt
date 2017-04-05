@@ -37,8 +37,6 @@ DONE - catch obvious errors
  - mask uv-coverage for elevation limits.
 DONE - status lights
  - Create ATCA array configuration files.
- - Limit max & min values in vriCalc
- - Limt max & min value in vriTk
  - In vriTk, check for numbers & disallow non-numeric characters.
 
 * Model browser & observation control
@@ -51,23 +49,23 @@ DONE    -- image sampling parameters
 NA    -- warning about miss-match between model & observing parameters
     
 * Nice to have:
-  - graphical comparison of model size scale (structure fn?, dispersion)
-    versus uv-coverage (histogram of baselines?).
-  - shadowing calculation.
-  - robust weighting calculation
-  - fitted synthesized beam size
-  - Elevation plot for selected telescopes & uv-coverage
   - Initial instructions on the array plot window.
+  - Elevation plot for selected telescopes & uv-coverage
   - Array selection table: selection & plot should change by arrow. <Ret>
        should choose>.
+  - (graphical comparison of model size scale (structure fn?, dispersion)
+    versus uv-coverage (histogram of baselines?).)
+  - (shadowing calculation.)
+  - (robust weighting calculation)
+  - (fitted synthesized beam size)
 
 * Plotting
  - scalebar on images rather than axes
  - primary beam circles on images.
- - fix colours on uv-coverage plot
+DONE - fix colours on uv-coverage plot
  - legend for uv-coverage plot
  - zoom & pan bindings
- - images resize when window is maximized
+DONE - images resize when window is maximized
  - options to save publication quality plots
  - zoom in on synthesized beam (1/3rd of plot)
 
