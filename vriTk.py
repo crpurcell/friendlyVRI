@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 05-Apr-2017 by cpurcell                                           #
+# MODIFIED: 07-Apr-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -114,7 +114,7 @@ class App(ttk.Frame):
     Toplevel window is used to display the input, output and intermediate
     Fourier transforms and images."""
     
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.parent.title("Friendly VRI: Control Window")
@@ -128,19 +128,23 @@ class App(ttk.Frame):
 
         # Menu bar
         self.menuBar = tk.Menu(self)
-        self.menuBar.add_command(label="About",
-                                 command=lambda fileName="README.txt",
-                                 title="About Friendly VRI" :
-                                 self._show_textfile(fileName, title))
-        self.menuBar.add_command(label="Help",
-                                 command=lambda fileName="HELP.txt",
-                                 title="Vriendly VRI Help" :
-                                 self._show_textfile(fileName, title))
-        self.menuBar.add_command(label="Quit", command=self._applicationExit)
+        self.fileMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.fileMenu.add_command(label="Quit", command=self._applicationExit)
+        self.menuBar.add_cascade(label="File", menu=self.fileMenu)
+        self.helpMenu = tk.Menu(self.menuBar, tearoff=0)
+        self.helpMenu.add_command(label="Instructions",
+                                  command=lambda fileName="HELP.txt",
+                                  title="Vriendly VRI Instructions" :
+                                  self._show_textfile(fileName, title))
+        self.helpMenu.add_command(label="About",
+                                  command=lambda fileName="README.txt",
+                                  title="About Friendly VRI" :
+                                  self._show_textfile(fileName, title))
+        self.menuBar.add_cascade(label="Help", menu=self.helpMenu)
         self.parent.config(menu=self.menuBar)
         
         # Array selector interface
-        self.selector =  ArraySelector(self)
+        self.selector =  ArraySelector(self, bgColour=bgColour)
         self.selector.grid(column=0, row=0, padx=10, pady=5, sticky="EW")
         
         sep = ttk.Separator(self, orient="horizontal")
@@ -154,7 +158,8 @@ class App(ttk.Frame):
         sep.grid(column=0, row=3, padx=10, pady=5, sticky="EW")
         
         # Status frame
-        self.statFrm = StatusFrame(self, boxWidth=20, gapWidth=150)
+        self.statFrm = StatusFrame(self, bgColour=bgColour, boxWidth=20,
+                                   gapWidth=150)
         self.statFrm.grid(column=0, row=4, padx=10, pady=5)
         
         # Create the display window
@@ -484,10 +489,12 @@ class ArraySelector(ttk.Frame):
     """Two multi-column listboxes an hour-angle slider and a 'Select' button
     that make up the array selection interface."""
     
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
-
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
+        
         # Set the expansion properties
         self.columnconfigure(2, weight=10)
         self.columnconfigure(4, weight=1)
@@ -544,7 +551,6 @@ class ArraySelector(ttk.Frame):
                           sticky="N")
 
         # Fancy add button with strike-through arrow
-        bgColour = ttk.Style().lookup("TFrame", "background")
         self.canvas = tk.Canvas(self, width=270, height=30,
                                background=bgColour, highlightthickness=0)
         self.canvas.create_line(10,15,260,15, width=2, arrow=tk.LAST,
@@ -722,10 +728,12 @@ class StatusFrame(ttk.Frame):
 
     # TODO: Redefine the grid labels for neatness.
     
-    def __init__(self, parent, boxWidth=20, gapWidth=30, yPad=25):
+    def __init__(self, parent, bgColour=None, boxWidth=20, gapWidth=30,
+                 yPad=25):
         ttk.Frame.__init__(self, parent)
         self.parent = parent
-        bgColour = ttk.Style().lookup("TFrame", "background")
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
 
         # Properties of the status boxes
         self.tagLst = ['statusModel', 'statusSelection', 'statusModelFFT',
@@ -1177,10 +1185,15 @@ if __name__ == "__main__":
     #root.tk.call('tk', 'scaling', 4.0)
     #root.tk.call('tk', 'scaling', '-displayof', '.', 50)
 
-    # Force colours 
-    bgColour = ttk.Style().lookup("TFrame", "background")
+    # Force widget background colours
+    if sys.platform=="darwin":
+        bgColour = "#ececec"
+    else:
+        bgColour = ttk.Style().lookup("TFrame", "background")
     ttk.Style().configure("TFrame", background=bgColour)
     ttk.Style().configure("TLabelframe", background=bgColour)
+    ttk.Style().configure("TLabel", background=bgColour)
+    ttk.Style().configure("highlightcolor", background=bgColour)
 
     # Force font
     default_font = tkFont.nametofont("TkDefaultFont")
