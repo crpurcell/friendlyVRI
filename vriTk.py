@@ -1007,6 +1007,7 @@ class PlotFrame(ttk.Frame):
         self.fig = Figure(figsize=(15.0, 9.0))
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
+        self.canvas.configure(highlightthickness=0)
         self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
