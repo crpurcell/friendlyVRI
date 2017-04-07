@@ -1,11 +1,29 @@
-Instructions for using the Friendly Virtual Radio Interferometer.
-_______________________________________________________________________________
+#-----------------------------------------------------------------------------#
+#                                                                             #
+# Instructions for using the Friendly Virtual Radio Interferometer.           #
+#                                                                             #
+#-----------------------------------------------------------------------------#
 
-1) Select an array configuration by clicking the table on the right. The layout of the antennas will be shown in the plot.
-2) Use the slider to set the hour angle range to observe for this array.
-3) Click the 'Add' button to add the chosen array configuration and hour angle range to the observation linup.
+
+1) Select an array configuration by clicking right-hand table. The layout of
+   the antennas will be shown in the plot on the right.
+   
+2) Use the slider to set the hour angle range. This range is unique for each
+   array configuration chosen.
+   
+3) Click the 'Add' button to add the selected array configuration and
+   hour-angle range to the observation table.
+   
 4) Repeat steps (1) to (3) to accumulate further arrays and hour angles.
-5) Set the observing frequency, Declination of the source and sampling cadence (clock time).
-6) Click on the folder icon to browse for a model image. Valid image formats include PNG, JPEG and GIF.
-7) Set an image pixel scale to specify the size of your model image.
-8) Run the observation by clicking on the 'Do Observation' button. The results (model FFT, uv-coverage, gridded FFT, synthesised beam image and observed image will be plotted in the Display Window.
+
+5) Set the 'Observing frequency', 'Source Declination' and 'Sampling Cadence'.
+
+6) Click on the folder icon to browse for a model image. Valid image formats
+   include PNG, JPEG and GIF.
+   
+7) Edit the 'Pixel Scale' value to set the size of your model image (assumes
+   square pixels).
+   
+8) Run the observation by clicking on the 'Do Observation' button. The results
+   (Model FFT, uv-Coverage, gridded FFT, Synthesised Beam and Observed Image)
+   will be plotted in the Display Window.

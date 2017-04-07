@@ -222,7 +222,7 @@ class App(ttk.Frame):
         self.parent.resizable(False, False)
         self.dispWin.update()
         self.dispWin.minsize(self.dispWin.winfo_width(),
-                                self.dispWin.winfo_height())
+                             self.dispWin.winfo_height())
         self.dispWin.resizable(True, True)
         
     def _applicationExit(self):
@@ -235,7 +235,8 @@ class App(ttk.Frame):
         
         self.helpWin = tk.Toplevel(self)
         self.helpWin.title(title)
-        self.helpTxt = tkScrolledText(self.helpWin)
+        self.helpTxt = tkScrolledText(self.helpWin, width=80,
+                                      font=tkFont.nametofont("TkFixedFont"))
         self.helpTxt.config(state="normal")
         with open(fileName,'r') as f:
             text = f.read()
@@ -638,7 +639,7 @@ class ObsInputs(ttk.Frame):
         self.decSrcEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
         
         # Sampling rate
-        self.sampRtLab = ttk.Label(self, text="Sampling Rate (s):")
+        self.sampRtLab = ttk.Label(self, text="Sampling Cadence (s):")
         self.sampRtLab.grid(column=4, row=0, padx=5, pady=5, sticky="E")
         sampRtLst_s = ["10", "30", "60", "100", "300", "600", "1200", "1800",
                        "3600"]

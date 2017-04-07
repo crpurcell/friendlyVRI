@@ -1,17 +1,27 @@
-# A friendly Virtual Radio Interferometer tool.
-# by Cormac R. Purcell and Roy Truelove (Macquarie University, Sydney)
-#
-# Copyright (c) 2017 Cormac R. Purcell and Roy Truelove
+#-----------------------------------------------------------------------------#
+#                                                                             #
+# The friendly Virtual Radio Interferometer tool.                             #
+# by Cormac R. Purcell and Roy Truelove (Macquarie University, Sydney).       #
+#                                                                             #
+# Copyright (c) 2017 Cormac R. Purcell and Roy Truelove.                      #
+#                                                                             #
+# Released under the MIT licence (see LICENCE.txt).                           #
+#                                                                             #
 #-----------------------------------------------------------------------------#
 
+ABOUT:
 This application is built to help astronomers investigate the effect of
 combining different array configurations when observing an astronomical object
-using an interferometer.
+using a radio interferometer. The graphical interface is written using the
+tkinter library for maximum portability.
 
-The graphical interface is written using the tkinter library for maximum
-portability.
+CONTACT:
+Questions or comments should be directed to 'ormac.purcell (at) mq.edu.au'.
 
-TODO:
+
+
+#-----------------------------------------------------------------------------#
+DEVELOPMENT TO-DO LIST:
 
 * ScatterPlot widget:
   - Alternative vertical text for older Tkinter.
@@ -50,7 +60,10 @@ TODO:
  - gamma slider for each MPL image figure
 
 #-----------------------------------------------------------------------------#
-# Using the observationManager from the ipython shell
+THE CALCULATION MODULE
+The calculations underlying the graphical applicatiion are seperated into the
+file 'vriCalc.py' to facilitate use with altrernative interfaces. For example,
+observations may be simulated from the basic ipython shell as follows:
 
 # Load the observation manager
 from Imports.vriCalc import observationManager
@@ -78,4 +91,3 @@ obsMan.calc_beam()
 
 # Apply the uv-coverage and create observed image
 obsMan.invert_observation()
-
