@@ -170,7 +170,7 @@ class App(ttk.Frame):
         self.dispWin.rowconfigure(0, weight=1)
 
         # Draw the display interface
-        self.pltFrm = PlotFrame(self.dispWin)
+        self.pltFrm = PlotFrame(self.dispWin, bgColour=bgColour)
         self.pltFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
         
         # DEBUG
@@ -991,8 +991,11 @@ class InformationPanel(ttk.Frame):
 class PlotFrame(ttk.Frame):
     """Frame showing the plots produced by the virtual interferometer."""
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
 
         # Dictionary tracking the 6 plot axes and their state (active/clear)
         #              {"AxisName": [axis, location, state],}
@@ -1004,10 +1007,11 @@ class PlotFrame(ttk.Frame):
                         "obsImg":   [None, "236", 0]}
         
         # Create the blank figure canvas and grid its tk canvas
-        self.fig = Figure(figsize=(15.0, 9.0))
+        self.fig = Figure(figsize=(15.0, 9.0), facecolor=bgColour)
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
+        self.canvas.configure(background=bgColour)
         self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -1194,7 +1198,6 @@ if __name__ == "__main__":
     ttk.Style().configure("TFrame", background=bgColour)
     ttk.Style().configure("TLabelframe", background=bgColour)
     ttk.Style().configure("TLabel", background=bgColour)
-    ttk.Style().configure("highlightcolor", background=bgColour)
 
     # Force font
     default_font = tkFont.nametofont("TkDefaultFont")
@@ -1204,4 +1207,3 @@ if __name__ == "__main__":
     # Grid the main window and start mainloop
     app = App(root).pack(side="top", fill="both", expand=True)
     root.mainloop()
-    

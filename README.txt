@@ -1,10 +1,7 @@
-#-----------------------------------------------------------------------------#
-#
 # A friendly Virtual Radio Interferometer tool.
 # by Cormac R. Purcell and Roy Truelove (Macquarie University, Sydney)
 #
 # Copyright (c) 2017 Cormac R. Purcell and Roy Truelove
-#
 #-----------------------------------------------------------------------------#
 
 This application is built to help astronomers investigate the effect of
@@ -17,39 +14,22 @@ portability.
 TODO:
 
 * ScatterPlot widget:
-DONE  - equalise X & y scales
-DONE  - Format of text labels and margins
   - Alternative vertical text for older Tkinter.
-
-* TreeTables:
-DONE  - Format of column spacing & text.
+  - Initial instructions on the array plot window.
 
 * DoubleSlider:
-NA  - Bind entry boxes
-DONE  - Limit parameter ranges.
-DONE  - Change to asymmetric handle shape.
-NA  - Snap to grid.
-DONE  - Limit significant figures.
+  - Bind jump to nearest click
+  - (Bind simultaneous drag)
 
 * Calculations and logic:
-DONE - flags showing & controlling steps done
-DONE - catch obvious errors
  - mask uv-coverage for elevation limits.
-DONE - status lights
  - Create ATCA array configuration files.
  - In vriTk, check for numbers & disallow non-numeric characters.
 
 * Model browser & observation control
-DONE  - relative path in file entry box ( + make longer )
-DONE  - move all controlls to controller window.
-IN PROG  - Add an information panel with:
-DONE    -- max & min size scale
-    -- synthesised beam size
-DONE    -- image sampling parameters
-NA    -- warning about miss-match between model & observing parameters
+ - Convert Imformation panel to graphic
     
 * Nice to have:
-  - Initial instructions on the array plot window.
   - Elevation plot for selected telescopes & uv-coverage
   - Array selection table: selection & plot should change by arrow. <Ret>
        should choose>.
@@ -60,14 +40,14 @@ NA    -- warning about miss-match between model & observing parameters
   - (fitted synthesized beam size)
 
 * Plotting
- - scalebar on images rather than axes
+ - scalebar on images
  - primary beam circles on images.
-DONE - fix colours on uv-coverage plot
  - legend for uv-coverage plot
  - zoom & pan bindings
-DONE - images resize when window is maximized
  - options to save publication quality plots
- - zoom in on synthesized beam (1/3rd of plot)
+ - options to save FITS files
+ - zoom & auto colour-scale for synthesised beam
+ - gamma slider for each MPL image figure
 
 #-----------------------------------------------------------------------------#
 # Using the observationManager from the ipython shell

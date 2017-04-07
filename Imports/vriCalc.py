@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 28-Mar-2017 by C. Purcell                                         #
+# MODIFIED: 07-Apr-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -21,7 +21,7 @@
 #      get_obs_parms        ... get a dict of common parameters               #
 #      calc_uvcoverage      ... calculate the uv-coverage for selected arrays #
 #      load_model_image     ... load a model image                            #
-#      set_pixscale         ... sat a new pixel scale for the model
+#      set_pixscale         ... sat a new pixel scale for the model           #
 #      invert_model         ... calculate the FFT of the model image          #
 #      grid_uvcoverage      ... grid the uv-coverage onto the image grid      #
 #      calc_beam            ... calculate the beam image                      #
@@ -37,7 +37,7 @@
 #                                                                             #
 #  od2list                  ... convert an ordered dictionary to a list       #
 #  sort_nicely              ... sort words as a human would (1 before 10)     #
-#  ang2str                ... convert a degree angle to a string+units      #
+#  ang2str                  ... convert a degree angle to a string+units      #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -457,8 +457,10 @@ class observationManager:
         self.priBeamMax_deg = np.max(priBeamLst_deg)
         if self.verbose:
             print ("\nuv-Coverage Parameters:")
-            print(u"Minimum uv-Spacing = %.3f k\u03bb" % (self.uvRngMin_lam/1e3))
-            print(u"Maximum uv-Spacing = %.3f k\u03bb" % (self.uvRngMax_lam/1e3))
+            print(u"Minimum uv-Spacing = %.3f k\u03bb" %
+                  (self.uvRngMin_lam/1e3))
+            print(u"Maximum uv-Spacing = %.3f k\u03bb" %
+                  (self.uvRngMax_lam/1e3))
             print("Minimum scale = %s" % (ang2str(self.scaleMin_deg)))
             print("Maximum scale = %s" % (ang2str(self.scaleMax_deg)))
             print("Field of View = %s" % (ang2str(self.priBeamMax_deg)))
