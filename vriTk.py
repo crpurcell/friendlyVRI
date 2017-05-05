@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 07-Apr-2017 by cpurcell                                           #
+# MODIFIED: 05-May-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -382,8 +382,34 @@ class App(ttk.Frame):
     def _on_plot_elevation(self, event=None):
         """Create a plot showing the elevation of the source as seen from 
         the currently selected telescopes."""
-        pass 
         
+        colLst=["r", "b", "g", "m", "c", "y", "k"]
+        fig = plt.figure(figsize=(7, 6))
+        ax = fig.add_subplot(111)
+
+        # Query the selected array configurations
+        selTab = self.obsManager.get_selected_arrays()
+        telescopeLst = set(selTab["telescope"])
+
+        # Plot each of the elevation curves
+        for i, e in enumerate(telescopeLst):
+            haArr_hr, elArr_deg = self.obsManager.calc_elevation_curve(e)
+            ax.plot(haArr_hr, elArr_deg, color=colLst[i%len(colLst)],
+                    label=e)
+
+        # Format labels and legend
+        ax.set_xlim(-12.0, 12.0)
+        ax.set_xlabel("Hour Angle (hours)")
+        ax.set_ylabel("Elevation (degrees)")
+        ax.margins(0.02)
+        leg = ax.legend(shadow=False)
+        for t in leg.get_texts():
+            t.set_fontsize('small')
+
+        # Show the figure
+        if len(telescopeLst)>0:
+            fig.show()
+    
         # DEBUG
         if False:
             fig = plt.figure(figsize=(10,10))

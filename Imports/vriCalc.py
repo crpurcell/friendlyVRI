@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 07-Apr-2017 by C. Purcell                                         #
+# MODIFIED: 05-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -410,7 +410,12 @@ class observationManager:
                 haArr_hr = np.linspace(e["haStart"], e["haEnd"], nSamps)
                 haArr_rad = np.radians(haArr_hr * 15.0)
                 e["haArr_rad"] = haArr_rad
-            
+
+                # Calculate the elevation curve and mask HA-range
+                dummy, elArr_deg = \
+                            self.calc_elevation_curve(e["telescope"], haArr_hr)
+                haArr_rad[elArr_deg<=0] = np.nan
+                
                 # Fill the uv-plane with samples over the hour-angle range
                 ar = od2list(self.arrsAvailable)[e["row"]]["antArray"]
                 latitude_rad = np.radians(ar.latitude_deg)
@@ -741,23 +746,25 @@ class observationManager:
             d["y"] = antArrayRow.northArr_m.copy()
         return d
         
-    def calc_elevation_curve(self, telescope, haArray=None):
+    def calc_elevation_curve(self, telescope, haArr_hr=None):
         """Calculate the elevation curves for a telescope and the current
         source declination over a vector of hour-angles."""
         
-        pass
-        #haArr_hr = np.linspace(-6.0, +6.0, 100)
-        #haArr_rad = np.radians(haArr_hr * 15.0)
-        #dec_rad = np.radians(self.dec_deg)
-        #elLst = []        
-        #telescopeLst = self.telescopeLatDict.keys()
-        #for telescope in telescopeLst:                    
-        #    latitude_rad = np.radians(self.telescopeLatDict[telescope])
-        #    el  = (np.sin(latitude_rad) * np.sin(dec_rad) +
-        #           np.cos(latitude_rad) * np.cos(dec_rad) * np.cos(haArr_rad))
-        #    elLst.append(el)
-        #return haArr_rad, elLst
+        if haArr_hr is None:
+            haArr_hr = np.linspace(-12.0, +12.0, 600)
+        haArr_rad = np.radians(haArr_hr * 15.0)
+        dec_rad = np.radians(self.dec_deg)
 
+        elArr_deg = None
+        telescopeLst = self.telescopeLatDict.keys()
+        if telescope in telescopeLst:
+            latitude_rad = np.radians(self.telescopeLatDict[telescope])
+            elArr_rad  = (np.sin(latitude_rad) * np.sin(dec_rad) +
+                np.cos(latitude_rad) * np.cos(dec_rad) * np.cos(haArr_rad))
+            elArr_deg = np.degrees(elArr_rad)
+            elArr_deg[elArr_deg<0] = 0.0
+            
+        return haArr_hr, elArr_deg
 
 
 #-----------------------------------------------------------------------------#

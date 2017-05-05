@@ -32,15 +32,15 @@ DEVELOPMENT TO-DO LIST:
   - (Bind simultaneous drag)
 
 * Calculations and logic:
- - mask uv-coverage for elevation limits.
+ - Deal cleanly with telescopes that can can never see source (below horizon)
  - Create ATCA array configuration files.
  - In vriTk, check for numbers & disallow non-numeric characters.
 
 * Model browser & observation control
- - Convert Imformation panel to graphic
+ - Convert Information panel to graphic
     
 * Nice to have:
-  - Elevation plot for selected telescopes & uv-coverage
+  - Modal window for other plots.
   - Array selection table: selection & plot should change by arrow. <Ret>
        should choose>.
   - (graphical comparison of model size scale (structure fn?, dispersion)
