@@ -5,16 +5,16 @@
 #-----------------------------------------------------------------------------#
 
 
-1) Select an array configuration by clicking right-hand table. The layout of
-   the antennas will be shown in the plot on the right.
+1) Select an array configuration by clicking in the right-hand table. The
+   layout of the antennas will be shown in the plot on the right.
    
-2) Use the slider to set the hour angle range. This range is unique for each
-   array configuration chosen.
+2) Use the slider to set the hour angle range. This range can be different for
+   each array configuration chosen.
    
-3) Click the 'Add' button to add the selected array configuration and
+3) Click the 'Add' button to add the selected array configuration and chosen
    hour-angle range to the observation table.
    
-4) Repeat steps (1) to (3) to accumulate further arrays and hour angles.
+4) Repeat steps (1) to (3) to accumulate further arrays and hour-angle ranges.
 
 5) Set the 'Observing frequency', 'Source Declination' and 'Sampling Cadence'.
 

@@ -16,7 +16,7 @@ using a radio interferometer. The graphical interface is written using the
 tkinter library for maximum portability.
 
 CONTACT:
-Questions or comments should be directed to 'ormac.purcell (at) mq.edu.au'.
+Questions or comments should be directed to 'cormac.purcell (at) mq.edu.au'.
 
 
 
@@ -58,6 +58,7 @@ DEVELOPMENT TO-DO LIST:
  - options to save FITS files
  - zoom & auto colour-scale for synthesised beam
  - gamma slider for each MPL image figure
+
 
 #-----------------------------------------------------------------------------#
 THE CALCULATION MODULE
