@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 06-May-2017 by C. Purcell                                         #
+# MODIFIED: 07-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -351,7 +351,7 @@ class ScatterPlot(ttk.Frame):
     #                                                left, right, bottom, top
     def __init__(self, parent, width=500, height=500, axPad=(100,25,70,25),
                  tickLen=10, nXticks=3, nYticks=3, padF=0.05, aspect="free",
-                 pntSize=2.0, *args, **kw):
+                 pntSize=2.0, interactive=False, *args, **kw):
         ttk.Frame.__init__(self, parent, *args, **kw)
         self.parent = parent
 
@@ -400,7 +400,8 @@ class ScatterPlot(ttk.Frame):
         # Bindings & location variables.
         self.oldx = 0
         self.oldy = 0
-        self._create_bindings()
+        if interactive:
+            self._create_bindings()
 
     def _init_axes(self):
         """Draw the axis lines"""
@@ -607,6 +608,12 @@ class ScatterPlot(ttk.Frame):
         except Exception:
             pass
     
+    def display_message(self, text=""):
+        """Display text in the centre of the canvas."""
+        
+        self.canvas.create_text(self.width/2, self.height/2, justify="center",
+                                text=text, fill='black')
+        
     def load_data(self, xArr, yArr):
         """Load the xy data arrays and draw the data points"""
 

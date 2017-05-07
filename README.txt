@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------#
 #                                                                             #
-# The friendly Virtual Radio Interferometer tool.                             #
+# The friendly Virtual Radio Interferometer tool,                             #
 # by Cormac R. Purcell and Roy Truelove (Macquarie University, Sydney).       #
 #                                                                             #
 # Copyright (c) 2017 Cormac R. Purcell and Roy Truelove.                      #
@@ -13,19 +13,14 @@ ABOUT:
 This application is built to help astronomers investigate the effect of
 combining different array configurations when observing an astronomical object
 using a radio interferometer. The graphical interface is written using the
-tkinter library for maximum portability.
+Python tkinter library for maximum portability.
 
 CONTACT:
 Questions or comments should be directed to 'cormac.purcell (at) mq.edu.au'.
 
 
-
 #-----------------------------------------------------------------------------#
 DEVELOPMENT TO-DO LIST:
-
-* ScatterPlot widget:
-  - Alternative vertical text for older Tkinter.
-  - Initial instructions on the array plot window.
 
 * DoubleSlider:
   - Bind jump to nearest click
@@ -40,16 +35,14 @@ DEVELOPMENT TO-DO LIST:
  - Convert Information panel to graphic
     
 * Nice to have:
-  - Modal window for other plots.
   - Array selection table: selection & plot should change by arrow. <Ret>
        should choose>.
-  - (graphical comparison of model size scale (structure fn?, dispersion)
-    versus uv-coverage (histogram of baselines?).)
   - (shadowing calculation.)
   - (robust weighting calculation)
   - (fitted synthesized beam size)
 
 * Plotting
+ - Modal window for other plots.
  - scalebar on images
  - primary beam circles on images.
  - legend for uv-coverage plot
