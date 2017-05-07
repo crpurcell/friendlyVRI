@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 05-May-2017 by C. Purcell                                         #
+# MODIFIED: 07-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -118,6 +118,7 @@ class observationManager:
         #  "row"          ... row number in the arrsAvailable table
         #  "haStart"      ... starting Hour angle in hours
         #  "haEnd"        ... ending Hour angle in hours
+        #  "sampRate"     ... sampling cadence in seconds
         #  "haArr_rad"    ... vector of hour angles
         #  "uArr_lam"     ... array of u values
         #  "vArr_lam"     ... array of v values
@@ -129,7 +130,6 @@ class observationManager:
         # Observing parameters common to all array configurations.
         self.freq_Hz = 1420e6
         self.lambda_m = C/self.freq_Hz
-        self.sampRate_s = 60.0
         self.dec_deg = 20.0
 
         # Ensemble uv-coverage parameters
@@ -250,11 +250,13 @@ class observationManager:
                         np.max(v['antArray'].lBase_m))
             return a
         
-    def select_array(self, key, haStart=-6.0, haEnd=6.0, byRow=False):
-        """Select an array configuration and hour-angle range to include in
-        the observation. The key must be the name of one of the available
-        array configurations (format = <telescope>_<array>). Available keys
-        can be queried by invoking the get_available_arrays() method."""
+    def select_array(self, key, haStart=-6.0, haEnd=6.0, sampRate_s=300.0,
+                     byRow=False):
+        """Select an array configuration, hour-angle range and sampling rate
+        to include in the observation. The key must be the name of one of the
+        available array configurations (format = <telescope>_<array>). 
+        Available keys can be queried by invoking the get_available_arrays()
+        method."""
 
         # Clear downstream uv-coverage variables
         self._reset_uv_vars()
@@ -287,6 +289,7 @@ class observationManager:
                      "row": int(self.arrsAvailable[key]["row"]),
                      "haStart": haStart,
                      "haEnd": haEnd,
+                     "sampRate": sampRate_s,
                      "haArr_rad": None,
                      "uArr_lam": None,
                      "vArr_lam": None,
@@ -295,8 +298,9 @@ class observationManager:
                      "priBeam_deg": None}
                 )
                 if self.verbose:
-                    print("Selected array '{:s}' HA = {:.2f} to {:.2f}".\
-                          format(key, float(haStart), float(haEnd)))
+                    print("Array '{:s}' HA = {:.2f} to {:.2f} by {:.0f}s".\
+                          format(key, float(haStart), float(haEnd),
+                                 sampRate_s))
             except Exception:
                 if self.verbose:
                     print("Selection failed!")
@@ -323,13 +327,14 @@ class observationManager:
             
             # Create a numpy structured array
             dtype=[('#', 'i4'), ('key', 'a100'), ('telescope', 'a50'),
-                   ('config', 'a50'), ('haStart', 'f4'), ('haEnd', 'f4')]
+                   ('config', 'a50'), ('haStart', 'f4'), ('haEnd', 'f4'),
+                   ('sampRate', 'f4')]
             a = np.zeros(len(self.arrsSelected), dtype=dtype)
             
             # Fill with a summary of the arrsSelected table
             for i, e in enumerate(self.arrsSelected):
                 a[i] = (i, e["key"], e["telescope"], e["config"],
-                        e["haStart"], e["haEnd"])
+                        e["haStart"], e["haEnd"], e["sampRate"])
             return a
         
     def clear_all_selections(self):
@@ -346,14 +351,12 @@ class observationManager:
         self.statusBeam = False
         self.statusObsDone = False
             
-    def set_obs_parms(self, freq_MHz=1420.0, sampRate_s=60.0, dec_deg=20.0):
-        """Set the common observation parameters: 
-            Observing frequency (MHz) = 1420.0  
-            Sampling rate (s)         =   60.0
+    def set_obs_parms(self, freq_MHz=1420.0, dec_deg=20.0):
+        """Set the common observation parameters:
+            Observing frequency (MHz) = 1420.0
             Source declination (deg)  =   20.0"""
         
         self.freq_Hz = float(freq_MHz)*1e6
-        self.sampRate_s = float(sampRate_s)
         self.dec_deg = float(dec_deg)
 
         # Set the downstream status flags
@@ -366,7 +369,6 @@ class observationManager:
         """Return the common observation parameters as a dictionary."""
 
         d = {"freq_Hz": self.freq_Hz,
-             "sampRate_s": self.sampRate_s,
              "dec_deg": self.dec_deg}
         
         return d
@@ -392,8 +394,6 @@ class observationManager:
         # Unit conversions of common parameters
         self.lambda_m = C/self.freq_Hz
         dec_rad = np.radians(self.dec_deg)
-        sampRate_deg = self.sampRate_s * 15.0 / 3600.0
-        sampRate_hr = self.sampRate_s / 3600.0
         
         # Loop through each selected array configuration
         scaleMinLst_deg = []
@@ -402,10 +402,13 @@ class observationManager:
         for e in self.arrsSelected:
             if self.verbose:
                 print("\nCalculating uv-coverage for %s" % \
-                      [e["telescope"], e["config"], e["haStart"], e["haEnd"]])
+                      [e["telescope"], e["config"], e["haStart"], e["haEnd"],
+                       e["sampRate"]])
             try:
                 
                 # Calculate the hour-angle sampling vector
+                sampRate_deg = e["sampRate"] * 15.0 / 3600.0
+                sampRate_hr = e["sampRate"] / 3600.0
                 nSamps = int((e["haEnd"] - e["haStart"])/sampRate_hr +1)
                 haArr_hr = np.linspace(e["haStart"], e["haEnd"], nSamps)
                 haArr_rad = np.radians(haArr_hr * 15.0)

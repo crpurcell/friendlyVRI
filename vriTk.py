@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 06-May-2017 by cpurcell                                           #
+# MODIFIED: 07-May-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -296,7 +296,6 @@ class App(ttk.Frame):
 
         # Reset the common parameters
         self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
-                                      self.selector.sampRt_s.get(),
                                       self.inputs.dec_deg.get())
 
         # Reset the array and hour-angle selections
@@ -305,7 +304,8 @@ class App(ttk.Frame):
             key = "_".join(selection[:2])
             haStart = float(selection[2])
             haEnd = float(selection[3])
-            self.obsManager.select_array(key, haStart, haEnd)
+            sampRate = float(selection[4])
+            self.obsManager.select_array(key, haStart, haEnd, sampRate)
         
         # Update the status
         self._update_status()
@@ -316,7 +316,6 @@ class App(ttk.Frame):
 
         # Reset the common parameters
         self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
-                                      self.selector.sampRt_s.get(),
                                       self.inputs.dec_deg.get())
         
         # Update the status
@@ -572,8 +571,6 @@ class ArraySelector(ttk.Frame):
         sampRtLst_s = ["10", "30", "60", "100", "300", "600", "1200", "1800",
                        "3600"]
         self.sampRt_s = tk.StringVar()
-        self.sampRt_s.trace("w", lambda dummy1, dummy2, dummy3:
-                            self.event_generate("<<obsparm_changed>>"))
         self.sampRtComb = ttk.Combobox(self, state="readonly",
                                        textvariable=self.sampRt_s,
                                        values=sampRtLst_s, width=7)
@@ -701,8 +698,8 @@ class ObsInputs(ttk.Frame):
         self.decSrcLab.grid(column=9, row=0, padx=5, pady=5, sticky="E")
         self.dec_deg = tk.DoubleVar()
         self.dec_deg.set(20.0)
-        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=7,
-                                   anchor="center")
+        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=12,
+                                   anchor="e")
         self.decValLab.grid(column=10, row=0, padx=5, pady=5, sticky="EW")
         self.decScale = ttk.Scale(self, from_=-90, to=90, variable=self.dec_deg,
                                   command=self._round_scale)
