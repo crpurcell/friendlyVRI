@@ -94,3 +94,6 @@ ENV/
 
 # Emacs twiddle files
 *~
+
+# Webcam capture file
+models/webcam.png

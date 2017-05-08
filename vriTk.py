@@ -33,6 +33,8 @@
 #                                                                             #
 # ObsInputs          ... class exposing the remaining observation inputs      #
 #     _handler_browse_button                                                  #
+#     _handler_capture_photo                                                  #
+#     _round_scale                                                            #
 #                                                                             #
 # StatusFrame        ... class defining status indicators and action buttons  #
 #     _draw_checkbox                                                          #
@@ -103,6 +105,13 @@ from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
+
+# Webcam library
+try:
+    import cv2
+    hasCV2 = True
+except ImportError:
+    hasCV2 = False
 
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -728,11 +737,12 @@ class ObsInputs(ttk.Frame):
                             sticky="NSEW")
 
         # Camera button
-#        self.cameraPhoto = tk.PhotoImage(file='Imports/camera.gif')
-#        self.cameraBtn = ttk.Button(self, image=self.cameraPhoto,
-#                                     command=self._handler_browse_button)
-#        self.cameraBtn.grid(column=7, row=0, rowspan=2, padx=5, pady=5,
-#                             sticky="NSEW")
+        if hasCV2:
+            self.cameraPhoto = tk.PhotoImage(file='Imports/camera.gif')
+            self.cameraBtn = ttk.Button(self, image=self.cameraPhoto,
+                                        command=self._handler_capture_photo)
+            self.cameraBtn.grid(column=7, row=0, rowspan=2, padx=5, pady=5,
+                                sticky="NSEW")
 
         # Source Declination slider
         self.decSrcLab = ttk.Label(self,
@@ -788,6 +798,22 @@ class ObsInputs(ttk.Frame):
                     self.modelFile.set(s[-1])
                     self.modelPath = modelPath
         self.event_generate("<<load_model_image>>")
+        
+    def _handler_capture_photo(self):
+        """Capture a photo using the webcam."""
+
+        try:
+            cam = cv2.VideoCapture()
+            cam.open(0)
+            for i in range(10):
+                success, img = cam.read()
+            cam.release()
+            cv2.imwrite("models/webcam.png", img)
+            self.modelFile.set("webcam.png")
+            self.modelPath = "models/webcam.png"
+            self.event_generate("<<load_model_image>>")
+        except Exception:
+            pass
         
     def _round_scale(self, e=None):
         value = self.decScale.get()
