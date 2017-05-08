@@ -808,10 +808,11 @@ class ObsInputs(ttk.Frame):
             for i in range(10):
                 success, img = cam.read()
             cam.release()
-            cv2.imwrite("models/webcam.png", img)
-            self.modelFile.set("webcam.png")
-            self.modelPath = "models/webcam.png"
-            self.event_generate("<<load_model_image>>")
+            if success:
+                cv2.imwrite("models/webcam.png", img)
+                self.modelFile.set("webcam.png")
+                self.modelPath = "models/webcam.png"
+                self.event_generate("<<load_model_image>>")
         except Exception:
             pass
         
@@ -888,7 +889,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[2], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltuvCovBtn = ttk.Button(self, text = "Calculate & Plot", width=16,
+        self.pltuvCovBtn = ttk.Button(self, text="Calculate & Plot", width=16,
                     command=lambda: self.event_generate("<<plot_uvcoverage>>"))
         self.pltuvCovBtn.configure(state="disabled")
         self.canvas.create_window(self.X[2], self.Y4, window=self.pltuvCovBtn)
@@ -901,7 +902,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[3], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltModFFTbtn = ttk.Button(self, text = "Calculate & Plot", width=16,
+        self.pltModFFTbtn = ttk.Button(self, text="Calculate & Plot", width=16,
                         command=lambda: self.event_generate("<<plot_modFFT>>"))
         self.pltModFFTbtn.configure(state="disabled")
         self.canvas.create_window(self.X[3], self.Y4, window=self.pltModFFTbtn)
