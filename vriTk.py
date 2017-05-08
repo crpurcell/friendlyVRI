@@ -43,6 +43,7 @@
 #     update                                                                  #
 #                                                                             #
 # PlotFrame          ... class defining the plotting window                   #
+#     _show_control_window                                                    #
 #     plot_image                                                              #
 #     plot_fft                                                                #
 #     plot_uvcov                                                              #
@@ -119,9 +120,10 @@ class App(ttk.Frame):
     def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+        self.bgColour=bgColour
         self.parent.title("Friendly VRI: Control Window")
         self.obsManager = None
-
+        
         # Set the grid expansion properties
         self.columnconfigure(0, weight=1)
         self.rowconfigure(0, weight=1)
@@ -129,7 +131,7 @@ class App(ttk.Frame):
         self.rowconfigure(2, weight=1)
 
         # Menu bar
-        self.menuBar = tk.Menu(self)
+        self.menuBar = tk.Menu(self, background=self.bgColour)
         self.fileMenu = tk.Menu(self.menuBar, tearoff=0)
         self.fileMenu.add_command(label="Quit", command=self._applicationExit)
         self.menuBar.add_cascade(label="File", menu=self.fileMenu)
@@ -146,7 +148,7 @@ class App(ttk.Frame):
         self.parent.config(menu=self.menuBar)
         
         # Array selector interface
-        self.selector =  ArraySelector(self, bgColour=bgColour)
+        self.selector =  ArraySelector(self, bgColour=self.bgColour)
         self.selector.grid(column=0, row=0, padx=10, pady=5, sticky="EW")
         
         sep = ttk.Separator(self, orient="horizontal")
@@ -160,20 +162,24 @@ class App(ttk.Frame):
         sep.grid(column=0, row=3, padx=10, pady=5, sticky="EW")
         
         # Status frame
-        self.statFrm = StatusFrame(self, bgColour=bgColour, boxWidth=22,
+        self.statFrm = StatusFrame(self, bgColour=self.bgColour, boxWidth=22,
                                    gapWidth=155)
         self.statFrm.grid(column=0, row=4, padx=10, pady=5)
         
         # Create the display window
         self.dispWin = tk.Toplevel(self)
-        self.dispWin.title("Friendly VRI: Display Window")
+        self.dispWin.title("Friendly VRI: Plot Window")
         self.dispWin.protocol("WM_DELETE_WINDOW", self._applicationExit)
         self.dispWin.columnconfigure(0, weight=1)
         self.dispWin.rowconfigure(0, weight=1)
 
         # Draw the display interface
-        self.pltFrm = PlotFrame(self.dispWin, bgColour=bgColour)
+        self.pltFrm = PlotFrame(self.dispWin, bgColour=self.bgColour)
         self.pltFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
+
+        # Set focus to the main window and bring to the fore
+        self.focus_force()
+        self.lift()
         
         # DEBUG
         if False:
@@ -237,7 +243,7 @@ class App(ttk.Frame):
     def _show_textfile(self, fileName, title=""):
         """Show a text file in a new window."""
         
-        self.helpWin = tk.Toplevel(self)
+        self.helpWin = tk.Toplevel(self, background=self.bgColour)
         self.helpWin.title(title)
         self.helpTxt = tkScrolledText(self.helpWin, width=80,
                                       font=tkFont.nametofont("TkFixedFont"))
@@ -253,17 +259,15 @@ class App(ttk.Frame):
         self.helpWin.rowconfigure(0, weight=1)
         self.helpWin.columnconfigure(0, weight=1)
         
-    def _show_lone_figure(self, fig, title="Plot Window", bgColour=None):
+    def _show_lone_figure(self, fig, title="Plot Window"):
         """Show a matplotlib figure in a new window."""
-      
-        self.figWin = tk.Toplevel(self)
+        
+        self.figWin = tk.Toplevel(self, background=self.bgColour)
         self.figWin.title(title)
         figCanvas = FigureCanvasTkAgg(fig, master=self.figWin)
         loneCan = figCanvas.get_tk_widget()
         loneCan.configure(highlightthickness=0)
-        if bgColour is None:
-            bgColour = ttk.Style().lookup("TFrame", "background")
-        loneCan.configure(background=bgColour)
+        loneCan.configure(background=self.bgColour)
         loneCan.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
                      sticky="NSEW")
         tbarFrm = ttk.Frame(self.figWin)
@@ -374,35 +378,36 @@ class App(ttk.Frame):
     def _on_plot_modFFT(self, event=None):
         """Show the FFT of the model image."""
 
-        stateDict = self.obsManager.get_status()
-        if not stateDict["statusModelFFT"]:
+        #stateDict = self.obsManager.get_status()
+        #if not stateDict["statusModelFFT"]:
             
-            # Invert the model image
-            self.obsManager.invert_model()
+        # Invert the model image
+        self.obsManager.invert_model()
         
-            # Plot the model FFT
-            parmDict = self.obsManager.get_scales()
-            lim_kl = parmDict["fftScale_lam"]/1e3
-            self.pltFrm.plot_fft("modelFFT", self.obsManager.modelFFTarr,
-                                 limit=lim_kl, title="Model FFT")
+        # Plot the model FFT
+        parmDict = self.obsManager.get_scales()
+        lim_kl = parmDict["fftScale_lam"]/1e3
+        self.pltFrm.plot_fft("modelFFT", self.obsManager.modelFFTarr,
+                             limit=lim_kl, title="Model FFT")
         
-            # Update the status
-            self._update_status()
+        # Update the status
+        self._update_status()
         
     def _on_plot_uvcov(self, event=None):
         """Plot the uv-coverage for all selected array configurations"""
         
-        # Calculate the uv-coverage for the selected observation parameters
-        stateDict = self.obsManager.get_status()
-        if not stateDict['statusuvCalc']:
-            self.obsManager.calc_uvcoverage()
+        #stateDict = self.obsManager.get_status()
+        #if not stateDict['statusuvCalc']:
 
-            # Plot the uv-coverage in the display window
-            self.pltFrm.plot_uvcov("uvCov", self.obsManager.arrsSelected,
-                                                     title="uv-Coverage")
+        # Calculate the uv-coverage for the selected observation parameters
+        self.obsManager.calc_uvcoverage()
+
+        # Plot the uv-coverage in the display window
+        self.pltFrm.plot_uvcov("uvCov", self.obsManager.arrsSelected,
+                               title="uv-Coverage")
         
-            # Update the status
-            self._update_status()
+        # Update the status
+        self._update_status()
         
     def _on_plot_elevation(self, event=None):
         """Create a plot showing the elevation of the source as seen from 
@@ -418,7 +423,7 @@ class App(ttk.Frame):
             return
 
         # Plot each of the elevation curves
-        fig = Figure(figsize=(7.5, 6))
+        fig = Figure(figsize=(7.5, 6), facecolor=bgColour)
         ax = fig.add_subplot(111)
         for i, e in enumerate(telescopeLst):
             haArr_hr, elArr_deg = self.obsManager.calc_elevation_curve(e)
@@ -857,7 +862,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[2], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltuvCovBtn = ttk.Button(self, text = "Plot uv-Coverage", width=16,
+        self.pltuvCovBtn = ttk.Button(self, text = "Calculate & Plot", width=16,
                     command=lambda: self.event_generate("<<plot_uvcoverage>>"))
         self.pltuvCovBtn.configure(state="disabled")
         self.canvas.create_window(self.X[2], self.Y4, window=self.pltuvCovBtn)
@@ -870,7 +875,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[3], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltModFFTbtn = ttk.Button(self, text = "Plot Model FFT", width=16,
+        self.pltModFFTbtn = ttk.Button(self, text = "Calculate & Plot", width=16,
                         command=lambda: self.event_generate("<<plot_modFFT>>"))
         self.pltModFFTbtn.configure(state="disabled")
         self.canvas.create_window(self.X[3], self.Y4, window=self.pltModFFTbtn)
@@ -1101,7 +1106,6 @@ class PlotFrame(ttk.Frame):
                             self.plot_fft("obsFFT", title="Observed FFT")
         self.axDict["obsImg"][0] = \
                             self.plot_image("obsImg", title="Observed Image")
-        self.show()
         
         # Add the information panel
         self.infoPanel = InformationPanel(self)
@@ -1109,16 +1113,21 @@ class PlotFrame(ttk.Frame):
                             padx=5, pady=5, sticky="W")
         
         # Add the matplotlib toolbar
-        tbarFrm = ttk.Frame(self)
-        toolbar = MPLnavToolbar(self.figCanvas, tbarFrm)
-        tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
+        self.tbarFrm = ttk.Frame(self)
+        self.toolbar = MPLnavToolbar(self.figCanvas, self.tbarFrm)
+        self.tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
 
         # Add the show control window Button
         self.showBtn = ttk.Button(self, text = "Show Control Window", width=20,
                                   command=self._show_control_window)
         self.showBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
+
+        # Show the plot
+        self.show()
         
     def _show_control_window(self):
+        """Set focus back to the main control window."""
+        
         root.focus_force()
         root.lift()
 
@@ -1218,6 +1227,7 @@ class PlotFrame(ttk.Frame):
     def show(self):
         self.fig.subplots_adjust(left=0.06, right=0.97, top=0.95, bottom=0.07,
                                  wspace=0.17, hspace=0.23)
+        self.toolbar.update()
         self.figCanvas.show()
 
     def clear_by_state(self, stateDict):
@@ -1306,5 +1316,5 @@ if __name__ == "__main__":
     root.option_add("*Font", default_font)
 
     # Grid the main window and start mainloop
-    app = App(root).pack(side="top", fill="both", expand=True)
+    app = App(root, bgColour).pack(side="top", fill="both", expand=True)
     root.mainloop()
