@@ -1105,13 +1105,22 @@ class PlotFrame(ttk.Frame):
         
         # Add the information panel
         self.infoPanel = InformationPanel(self)
-        self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=3,
+        self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=2,
                             padx=5, pady=5, sticky="W")
         
         # Add the matplotlib toolbar
         tbarFrm = ttk.Frame(self)
         toolbar = MPLnavToolbar(self.figCanvas, tbarFrm)
         tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
+
+        # Add the show control window Button
+        self.showBtn = ttk.Button(self, text = "Show Control Window", width=20,
+                                  command=self._show_control_window)
+        self.showBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
+        
+    def _show_control_window(self):
+        root.focus_force()
+        root.lift()
 
     def plot_image(self, axName, imgArr=None, title=""):
         """Plot an image with a scalebar (TBD)."""
