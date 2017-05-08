@@ -7,13 +7,14 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 07-May-2017 by cpurcell                                           #
+# MODIFIED: 08-May-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 # App (class)        ... class containing the main application logic          #
 #     _applicationExit                                                        #
 #     _show_textfile                                                          #
+#     _show_lone_figure                                                       #
 #     _update_status                                                          #
 #     _on_select_config                                                       #
 #     _on_sel_change                                                          #
@@ -100,6 +101,7 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -158,8 +160,8 @@ class App(ttk.Frame):
         sep.grid(column=0, row=3, padx=10, pady=5, sticky="EW")
         
         # Status frame
-        self.statFrm = StatusFrame(self, bgColour=bgColour, boxWidth=20,
-                                   gapWidth=150)
+        self.statFrm = StatusFrame(self, bgColour=bgColour, boxWidth=22,
+                                   gapWidth=155)
         self.statFrm.grid(column=0, row=4, padx=10, pady=5)
         
         # Create the display window
@@ -246,11 +248,33 @@ class App(ttk.Frame):
         self.helpTxt.config(state="disabled")
         self.helpTxt.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
         self.closeBtn = ttk.Button(self.helpWin, text='Close',
-                           command=self.helpWin.destroy)
+                                   command=self.helpWin.destroy)
         self.closeBtn.grid(column=0, row=1, padx=5, pady=5, sticky="E")
         self.helpWin.rowconfigure(0, weight=1)
         self.helpWin.columnconfigure(0, weight=1)
         
+    def _show_lone_figure(self, fig, title="Plot Window", bgColour=None):
+        """Show a matplotlib figure in a new window."""
+      
+        self.figWin = tk.Toplevel(self)
+        self.figWin.title(title)
+        figCanvas = FigureCanvasTkAgg(fig, master=self.figWin)
+        loneCan = figCanvas.get_tk_widget()
+        loneCan.configure(highlightthickness=0)
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
+        loneCan.configure(background=bgColour)
+        loneCan.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
+                     sticky="NSEW")
+        tbarFrm = ttk.Frame(self.figWin)
+        toolbar = NavigationToolbar2TkAgg(figCanvas, tbarFrm)
+        tbarFrm.grid(column=0, row=1, padx=5, pady=5, sticky="W")
+        closeBtn = ttk.Button(self.figWin, text='Close',
+                              command=self.figWin.destroy)
+        closeBtn.grid(column=1, row=1, padx=5, pady=5, sticky="E")
+        self.figWin.rowconfigure(0, weight=1)
+        self.figWin.columnconfigure(0, weight=1)
+
     def _update_status(self):
         """Update the status of the user interface, including the checkbox
         indicators, plot axes and information panels. The status of each step
@@ -285,7 +309,7 @@ class App(ttk.Frame):
         # Show the antenna diameter and array latitude
         text = "{:.1f} m".format(d["diameter_m"])
         self.selector.antD_m.set(text)
-        text = u"{:.6f}\u00B0".format(d["latitude_deg"])
+        text = u"{:.4f}\u00B0".format(d["latitude_deg"])
         self.selector.antL_deg.set(text)
         text = u"{:.3f} km".format(d["baseMin_m"]/1000.0)
         self.selector.minBase_km.set(text)
@@ -394,7 +418,7 @@ class App(ttk.Frame):
             return
 
         # Plot each of the elevation curves
-        fig = plt.figure(figsize=(7, 6))
+        fig = Figure(figsize=(7.5, 6))
         ax = fig.add_subplot(111)
         for i, e in enumerate(telescopeLst):
             haArr_hr, elArr_deg = self.obsManager.calc_elevation_curve(e)
@@ -413,7 +437,7 @@ class App(ttk.Frame):
 
         # Show the figure
         if len(telescopeLst)>0:
-            fig.show()
+            self._show_lone_figure(fig, title="Elevation Plot")
 
     def _on_load_model(self, event=None):
         """Load a model image into the observation manager"""
@@ -502,11 +526,10 @@ class App(ttk.Frame):
 
     def _on_show_results(self, event=None):
         """Raise the focus of the plotting window."""
+
         self.dispWin.focus_force()
         self.dispWin.lift()
         
-        #self.root.after(1, lambda: self.root.focus_force())
-        #self.root.after(1, lambda: self.root.lift())
         
 #-----------------------------------------------------------------------------#
 class ArraySelector(ttk.Frame):
@@ -1060,8 +1083,9 @@ class PlotFrame(ttk.Frame):
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
         self.canvas.configure(background=bgColour)
-        self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
-        self.columnconfigure(0, weight=1)
+        self.canvas.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
+                         sticky="NSEW")
+        self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
         
         # Add the axes for the plots - default plot is empty
@@ -1081,8 +1105,13 @@ class PlotFrame(ttk.Frame):
         
         # Add the information panel
         self.infoPanel = InformationPanel(self)
-        self.infoPanel.grid(column=0, row=1, columnspan=3, padx=5, pady=5,
-                            sticky="EW")
+        self.infoPanel.grid(column=0, row=1, columnspan=1, padx=5, pady=5,
+                            sticky="W")
+        
+        # Add the matplotlib toolbar
+        tbarFrm = ttk.Frame(self)
+        toolbar = NavigationToolbar2TkAgg(self.figCanvas, tbarFrm)
+        tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="W")
 
     def plot_image(self, axName, imgArr=None, title=""):
         """Plot an image with a scalebar (TBD)."""
@@ -1152,7 +1181,13 @@ class PlotFrame(ttk.Frame):
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.set_title(title)
-        
+
+        # Set the z-order of the plots based on the uv-coverage scale
+        if arrsSelected is not None:
+            for i, e in enumerate(arrsSelected):
+                print(i, e["scaleMin_deg"], e["scaleMax_deg"], e["telescope"])
+
+                
         if arrsSelected is not None:
             for i, e in enumerate(arrsSelected):
                 u = e["uArr_lam"]
@@ -1241,15 +1276,17 @@ if __name__ == "__main__":
     # Force widget background colours
     if sys.platform=="darwin":
         bgColour = "#ececec"
+        fontSize = 12
     else:
         bgColour = ttk.Style().lookup("TFrame", "background")
+        fontSize = 10
     ttk.Style().configure("TFrame", background=bgColour)
     ttk.Style().configure("TLabelframe", background=bgColour)
     ttk.Style().configure("TLabel", background=bgColour)
 
     # Force font
     default_font = tkFont.nametofont("TkDefaultFont")
-    default_font.configure(size=10)
+    default_font.configure(size=fontSize)
     root.option_add("*Font", default_font)
 
     # Grid the main window and start mainloop
