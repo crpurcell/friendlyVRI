@@ -22,9 +22,6 @@ Questions or comments should be directed to 'cormac.purcell (at) mq.edu.au'.
 #-----------------------------------------------------------------------------#
 DEVELOPMENT TO-DO LIST:
 
-* DoubleSlider:
-  - Bind jump to nearest click
-  - (Bind simultaneous drag)
 
 * Calculations and logic:
  - Deal cleanly with telescopes that can can never see source (below horizon)
@@ -42,14 +39,12 @@ DEVELOPMENT TO-DO LIST:
   - (fitted synthesized beam size)
 
 * Plotting
- - Modal window for other plots.
  - scalebar on images
  - primary beam circles on images.
  - legend for uv-coverage plot
- - zoom & pan bindings
  - options to save publication quality plots
  - options to save FITS files
- - zoom & auto colour-scale for synthesised beam
+ - auto colour-scale for synthesised beam
  - gamma slider for each MPL image figure
 
 

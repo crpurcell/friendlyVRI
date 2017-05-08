@@ -267,7 +267,7 @@ class App(ttk.Frame):
         loneCan.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
                      sticky="NSEW")
         tbarFrm = ttk.Frame(self.figWin)
-        toolbar = NavigationToolbar2TkAgg(figCanvas, tbarFrm)
+        toolbar = MPLnavToolbar(figCanvas, tbarFrm)
         tbarFrm.grid(column=0, row=1, padx=5, pady=5, sticky="W")
         closeBtn = ttk.Button(self.figWin, text='Close',
                               command=self.figWin.destroy)
@@ -1105,13 +1105,13 @@ class PlotFrame(ttk.Frame):
         
         # Add the information panel
         self.infoPanel = InformationPanel(self)
-        self.infoPanel.grid(column=0, row=1, columnspan=1, padx=5, pady=5,
-                            sticky="W")
+        self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=3,
+                            padx=5, pady=5, sticky="W")
         
         # Add the matplotlib toolbar
         tbarFrm = ttk.Frame(self)
-        toolbar = NavigationToolbar2TkAgg(self.figCanvas, tbarFrm)
-        tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="W")
+        toolbar = MPLnavToolbar(self.figCanvas, tbarFrm)
+        tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
 
     def plot_image(self, axName, imgArr=None, title=""):
         """Plot an image with a scalebar (TBD)."""
@@ -1264,7 +1264,14 @@ class PlotFrame(ttk.Frame):
             self.plot_image("obsImg")
         self.show()
 
-
+#-----------------------------------------------------------------------------#
+class MPLnavToolbar(NavigationToolbar2TkAgg):
+    """Subclass the MPL navigation toolbar to disable the coord readout."""
+    
+    def set_message(self, msg):
+        pass
+    
+    
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
     root = tk.Tk()
