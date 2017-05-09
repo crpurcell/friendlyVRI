@@ -19,7 +19,9 @@
 5)  Repeat steps (1) to (4) to accumulate further observations.
 
 6)  Click on the folder icon to browse for a model image. Valid image formats
-    include PNG, JPEG and GIF.
+    include PNG, JPEG and GIF. If the python 'cv2' module is available a camera
+    button will be available. Clicking on this icon will capture a photo with
+    the the webcam and use this as a model image.
 
 7)  Edit the Pixel Scale value to set the size of your model image (assumes
     square pixels).

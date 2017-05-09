@@ -7,7 +7,7 @@
 #                                                                             #
 # REQUIRED: Requires numpy, tkinter, matplotlib                               #
 #                                                                             #
-# MODIFIED: 08-May-2017 by cpurcell                                           #
+# MODIFIED: 09-May-2017 by cpurcell                                           #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -25,6 +25,7 @@
 #     _on_plot_elevation                                                      #
 #     _on_load_model                                                          #
 #     _on_do_observation                                                      #
+#     _on_show_results                                                        #
 #                                                                             #
 # ArraySelector      ... class defining the array selection interface         #
 #     _handler_add_button                                                     #
@@ -51,6 +52,9 @@
 #     plot_uvcov                                                              #
 #     show                                                                    #
 #     clear_by_state                                                          #
+#                                                                             #
+# MPLnavToolbar      ... subclass the MPL nav toolbar to disable readout      #
+#     set_message                                                             #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -386,9 +390,6 @@ class App(ttk.Frame):
         
     def _on_plot_modFFT(self, event=None):
         """Show the FFT of the model image."""
-
-        #stateDict = self.obsManager.get_status()
-        #if not stateDict["statusModelFFT"]:
             
         # Invert the model image
         self.obsManager.invert_model()
@@ -404,9 +405,6 @@ class App(ttk.Frame):
         
     def _on_plot_uvcov(self, event=None):
         """Plot the uv-coverage for all selected array configurations"""
-        
-        #stateDict = self.obsManager.get_status()
-        #if not stateDict['statusuvCalc']:
 
         # Calculate the uv-coverage for the selected observation parameters
         self.obsManager.calc_uvcoverage()
@@ -514,7 +512,7 @@ class App(ttk.Frame):
         
         # Show the synthesised beam      
         self.pltFrm.plot_image("beam", np.abs(self.obsManager.beamArr),
-                               title="Synthesised Beam")
+                               title="Synthesised Beam", pRng=(0, 99.97))
         
         # Apply the gridded uv-coverage and invert
         self.obsManager.invert_observation()
@@ -746,11 +744,11 @@ class ObsInputs(ttk.Frame):
 
         # Source Declination slider
         self.decSrcLab = ttk.Label(self,
-                                   text="Source Declination (deg):")
+                                   text="Source Declination (degrees):")
         self.decSrcLab.grid(column=9, row=0, padx=5, pady=5, sticky="E")
         self.dec_deg = tk.DoubleVar()
         self.dec_deg.set(20.0)
-        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=12,
+        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=5,
                                    anchor="e")
         self.decValLab.grid(column=10, row=0, padx=5, pady=5, sticky="EW")
         self.decScale = ttk.Scale(self, from_=-90, to=90, variable=self.dec_deg,
@@ -1158,7 +1156,7 @@ class PlotFrame(ttk.Frame):
         root.focus_force()
         root.lift()
 
-    def plot_image(self, axName, imgArr=None, title=""):
+    def plot_image(self, axName, imgArr=None, title="", pRng=None):
         """Plot an image with a scalebar (TBD)."""
         
         ax = self.axDict[axName][0]
@@ -1171,13 +1169,25 @@ class PlotFrame(ttk.Frame):
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.set_title(title)
+        
+        # Catch blank arrays
+        if imgArr is None:
+            return ax
+        if imgArr.max()==imgArr.min():
+            return ax
 
-        # Show the image array, if provided
-        if imgArr is not None:
-            ax.imshow(imgArr, cmap=plt.cm.cubehelix, interpolation="nearest",
-                      origin="lower")
-            ax.set_aspect('equal')
-            self.axDict[axName][2] = 1
+        # Set the colour clip to percentiles, if requested
+        zMin = None
+        zMax = None
+        if pRng is not None:
+            zMin = np.nanpercentile(imgArr, pRng[0])
+            zMax = np.nanpercentile(imgArr, pRng[1])
+        
+        # Show the image array
+        ax.imshow(imgArr, cmap=plt.cm.cubehelix, interpolation="nearest",
+                  origin="lower", vmin=zMin, vmax=zMax)
+        ax.set_aspect('equal')
+        self.axDict[axName][2] = 1
             
         return ax
     
@@ -1194,21 +1204,26 @@ class PlotFrame(ttk.Frame):
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.set_title(title)
-
-        # Show the image array, if provided
-        if fftArr is not None:
-            if limit:
-                extent=[-limit, limit, -limit, limit]
-            else:
-                extent=None
-            ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
-                      interpolation="nearest", origin="lower", extent=extent)
-            ax.set_xlabel(u"u (k$\lambda$)")
-            ax.set_ylabel(u"v (k$\lambda$)")
-            ax.set_aspect('equal')
-            plt.setp(ax.get_yticklabels(), visible=True)
-            plt.setp(ax.get_xticklabels(), visible=True)
-            self.axDict[axName][2] = 1
+        
+        # Catch blank arrays
+        if fftArr is None:
+            return ax
+        if fftArr.max()==fftArr.min():
+            return ax
+        
+        # Show the image array
+        if limit:
+            extent=[-limit, limit, -limit, limit]
+        else:
+            extent=None
+        ax.imshow(np.abs(fftArr), norm=LogNorm(), cmap=plt.cm.cubehelix,
+                  interpolation="nearest", origin="lower", extent=extent)
+        ax.set_xlabel(u"u (k$\lambda$)")
+        ax.set_ylabel(u"v (k$\lambda$)")
+        ax.set_aspect('equal')
+        plt.setp(ax.get_yticklabels(), visible=True)
+        plt.setp(ax.get_xticklabels(), visible=True)
+        self.axDict[axName][2] = 1
             
         return ax
 
@@ -1229,18 +1244,27 @@ class PlotFrame(ttk.Frame):
 
         # Set the z-order of the plots based on the uv-coverage scale
         if arrsSelected is not None:
+            oLst = []
+            sLst = []
             for i, e in enumerate(arrsSelected):
-                print(i, e["scaleMin_deg"], e["scaleMax_deg"], e["telescope"])
-
-                
+                oLst.append(i)
+                sLst.append(e["scaleMin_deg"])
+            multiLst = zip(sLst, oLst)
+            multiLst.sort()
+            sLst, oLst = zip(*multiLst)
+            zLst = range(len(oLst))
+            multiLst = zip(oLst, zLst)
+            multiLst.sort()
+            oLst, zLst = zip(*multiLst)
+            
         if arrsSelected is not None:
             for i, e in enumerate(arrsSelected):
                 u = e["uArr_lam"]
                 v = e["vArr_lam"]
                 ax.scatter(x=u/1000, y=v/1000, marker=".", edgecolor='none',
-                           s=2, color=colLst[i%len(colLst)])
+                           s=2, color=colLst[i%len(colLst)], zorder=zLst[i])
                 ax.scatter(x=-u/1000, y=-v/1000, marker=".", edgecolor='none',
-                           s=2, color=colLst[i%len(colLst)])
+                           s=2, color=colLst[i%len(colLst)], zorder=zLst[i])
             ax.set_xlabel(u"u (k$\lambda$)")
             ax.set_ylabel(u"v (k$\lambda$)")
             ax.set_aspect('equal', 'datalim')
@@ -1252,13 +1276,15 @@ class PlotFrame(ttk.Frame):
         return ax
 
     def show(self):
+        """Show the plots in the plotting window."""
+        
         self.fig.subplots_adjust(left=0.06, right=0.97, top=0.95, bottom=0.07,
-                                 wspace=0.17, hspace=0.23)
+                                 wspace=0.20, hspace=0.23)
         self.toolbar.update()
         self.figCanvas.show()
 
     def clear_by_state(self, stateDict):
-        """Use a dictionary toclear downstream plots based on state."""
+        """Use a dictionary to clear downstream plots based on state."""
 
         # Track which plots need to be cleared so we don't make multiple calls
         self.clearDict = {"modelImg": 0, "modelFFT": 0, "uvCov": 0,

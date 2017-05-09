@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# MODIFIED: 07-May-2017 by C. Purcell                                         #
+# MODIFIED: 09-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -17,11 +17,11 @@
 #      select_array         ... select an array config & HA-range             #
 #      get_selected_arrays  ... list the selected cofigurations & HA-ranges   #
 #      clear_all_selections ... clear the current selections                  #
-#      set_obs_parms        ... set the common parameters (freq, samp, dec)   #
+#      set_obs_parms        ... set the common parameters (freq, dec)         #
 #      get_obs_parms        ... get a dict of common parameters               #
 #      calc_uvcoverage      ... calculate the uv-coverage for selected arrays #
 #      load_model_image     ... load a model image                            #
-#      set_pixscale         ... sat a new pixel scale for the model           #
+#      set_pixscale         ... set a new pixel scale for the model           #
 #      invert_model         ... calculate the FFT of the model image          #
 #      grid_uvcoverage      ... grid the uv-coverage onto the image grid      #
 #      calc_beam            ... calculate the beam image                      #
@@ -418,7 +418,7 @@ class observationManager:
                 dummy, elArr_deg = \
                             self.calc_elevation_curve(e["telescope"], haArr_hr)
                 haArr_rad[elArr_deg<=0] = np.nan
-                
+                    
                 # Fill the uv-plane with samples over the hour-angle range
                 ar = od2list(self.arrsAvailable)[e["row"]]["antArray"]
                 latitude_rad = np.radians(ar.latitude_deg)
@@ -434,12 +434,18 @@ class observationManager:
                                  ar.Bz_m[i] * np.cos(dec_rad))
                 e["uArr_lam"] = u_m/self.lambda_m
                 e["vArr_lam"] = v_m/self.lambda_m
-
+                
                 # Calculate the max & min scales from the uv-coverage
-                lArr_lam = np.sqrt(e["uArr_lam"]**2.0 + e["vArr_lam"]**2.0)
-                e["scaleMin_deg"] = np.degrees(1.0/np.nanmax(lArr_lam))
-                e["scaleMax_deg"] = np.degrees(1.0/np.nanmin(lArr_lam))
-                e["priBeam_deg"] = np.degrees(1.22*self.lambda_m/ar.diameter_m)
+                if np.all(haArr_rad!=haArr_rad):
+                    e["scaleMin_deg"] = np.nan
+                    e["scaleMax_deg"] = np.nan
+                    e["priBeam_deg"] = np.nan
+                else:
+                    lArr_lam = np.sqrt(e["uArr_lam"]**2.0 + e["vArr_lam"]**2.0)
+                    e["scaleMin_deg"] = np.degrees(1.0/np.nanmax(lArr_lam))
+                    e["scaleMax_deg"] = np.degrees(1.0/np.nanmin(lArr_lam))
+                    e["priBeam_deg"] = \
+                                np.degrees(1.22*self.lambda_m/ar.diameter_m)
                 scaleMinLst_deg.append(e["scaleMin_deg"])
                 scaleMaxLst_deg.append(e["scaleMax_deg"])
                 priBeamLst_deg.append(e["priBeam_deg"])
@@ -449,6 +455,7 @@ class observationManager:
                                    ang2str(e["scaleMax_deg"])))
                     print("Primary Beam FWHM = %s" %
                           (ang2str(e["priBeam_deg"])))
+                    
             except Exception:        
                 if self.verbose:
                     print("uv-coverage calculation failed for:")

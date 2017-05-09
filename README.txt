@@ -13,45 +13,22 @@ ABOUT:
 This application is built to help astronomers investigate the effect of
 combining different array configurations when observing an astronomical object
 using a radio interferometer. The graphical interface is written using the
-Python tkinter library for maximum portability.
+Python tkinter library for maximum portability. For a quick-start guide see
+the file 'HELP.txt'.
+
+INSTALLATION REQUIREMENTS:
+The friendlyVRI tool is written in Python and requires the numpy, matplotlib
+tkinter and PIL (or PILLOW) modules. If the python OpenCV module (cv2) is
+available a webcam can be used to capture a model image.
 
 CONTACT:
 Questions or comments should be directed to 'cormac.purcell (at) mq.edu.au'.
 
 
 #-----------------------------------------------------------------------------#
-DEVELOPMENT TO-DO LIST:
-
-
-* Calculations and logic:
- - Deal cleanly with telescopes that can can never see source (below horizon)
- - Create ATCA array configuration files.
- - In vriTk, check for numbers & disallow non-numeric characters.
-
-* Model browser & observation control
- - Convert Information panel to graphic
-    
-* Nice to have:
-  - Array selection table: selection & plot should change by arrow. <Ret>
-       should choose>.
-  - (shadowing calculation.)
-  - (robust weighting calculation)
-  - (fitted synthesized beam size)
-
-* Plotting
- - scalebar on images
- - primary beam circles on images.
- - legend for uv-coverage plot
- - options to save publication quality plots
- - options to save FITS files
- - auto colour-scale for synthesised beam
- - gamma slider for each MPL image figure
-
-
-#-----------------------------------------------------------------------------#
 THE CALCULATION MODULE
-The calculations underlying the graphical applicatiion are seperated into the
-file 'vriCalc.py' to facilitate use with altrernative interfaces. For example,
+The calculations underlying the graphical application are seperated into the
+file 'vriCalc.py' to facilitate use with alternative interfaces. For example,
 observations may be simulated from the basic ipython shell as follows:
 
 # Load the observation manager
@@ -66,13 +43,20 @@ obsMan.select_array('VLA_C')
 obsMan.select_array('VLA_D')
 obsMan.get_selected_arrays()
 
+# Set the observing frequency (MHz) and source declination (deg).
+obsMan.set_obs_parms(1420.0, 20.0)
+
 # Calculate the uv-coverage
 obsMan.calc_uvcoverage()
 
-# Load the model
-obsMan.load_model_image("models/Lenna.png")
+# Load the model and set the pixel scale in arcsec
+obsMan.load_model_image("models/galaxy_lobes.png")
+obsMan.set_pixscale(1.0)
 
-# Grid the uv-coverage onto the model grid
+# Calculate the FFT of the model image
+obsMan.invert_model()
+
+# Grid the uv-coverage onto the same pixels as the FFT as the model image
 obsMan.grid_uvcoverage()
 
 # Create the beam image
@@ -80,3 +64,30 @@ obsMan.calc_beam()
 
 # Apply the uv-coverage and create observed image
 obsMan.invert_observation()
+
+
+#-----------------------------------------------------------------------------#
+DEVELOPMENT TO-DO LIST:
+
+* Calculations and logic:
+ - Create ATCA array configuration files.
+ - In vriTk, check for valid numbers & disallow non-numeric characters.
+
+* Model browser & observation control
+ - Convert Information panel in plotting window to a graphic.
+    
+* Nice to have:
+  - Array selection table: selection & plot should change by arrow and <Ret>
+    should choose (currently mouse only).
+  - (robust weighting calculation)
+  - (shadowing calculation.)
+  - (Fit Gaussian to synthesized beam to evaluate size & PA)
+  - option to save FITS files.
+
+* Plotting
+ - scalebar on images.
+ - primary beam circles on images.
+ - legend for uv-coverage plot.
+ - options to save publication quality plots (individualy & all 6 panels).
+ - auto colour-scale for synthesised beam.
+ - gamma slider for each MPL image figure.
