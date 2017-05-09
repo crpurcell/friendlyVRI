@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 07-May-2017 by C. Purcell                                         #
+# MODIFIED: 09-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -348,6 +348,7 @@ class ScrolledCanvasFrame(ttk.Frame):
 #-----------------------------------------------------------------------------#
 class ScatterPlot(ttk.Frame):
     """Canvas configured as a simple scatterplot widget."""
+    
     #                                                left, right, bottom, top
     def __init__(self, parent, width=500, height=500, axPad=(100,25,70,25),
                  tickLen=10, nXticks=3, nYticks=3, padF=0.05, aspect="free",
@@ -432,12 +433,15 @@ class ScatterPlot(ttk.Frame):
             rng = max(xRng, yRng)
             xRng = rng
             yRng = rng
+        else:
+            xRng = 1 if xRng==0 else xRng
+            yRng = 1 if yRng==0 else yRng
         if xMin==xMax:
-            xMin = yMin
-            xMax = yMax
+            xMin = xMin - xRng/2.0
+            xMax = xMax + xRng/2.0
         if yMin==yMax:
-            yMin = xMin
-            yMax = xMax
+            yMin = yMin - yRng/2.0
+            yMax = yMax + yRng/2.0
         self.xPlotMin = xMin - xRng * self.padF
         self.xPlotMax = xMax + xRng * self.padF
         self.yPlotMin = yMin - yRng * self.padF
@@ -487,6 +491,7 @@ class ScatterPlot(ttk.Frame):
             pwr = int(np.floor(np.log10(rng))-1)
             d = np.round(rng/(float(nTicks)*10.0**pwr)) * 10.0**pwr
             start = np.round(xMin/10.0**pwr) * 10.0**pwr
+            start = np.round(start/d)*d  # Force ticks to shift to zero
             ticks = []
             i = 0
             while True:
