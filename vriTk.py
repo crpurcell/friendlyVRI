@@ -750,7 +750,7 @@ class ObsInputs(ttk.Frame):
                                    text="Source Declination (degrees):")
         self.decSrcLab.grid(column=9, row=0, padx=5, pady=5, sticky="E")
         self.dec_deg = tk.DoubleVar()
-        self.dec_deg.set(20.0)
+        self.dec_deg.set(-20.0)
         self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=5,
                                    anchor="e")
         self.decValLab.grid(column=10, row=0, padx=5, pady=5, sticky="EW")

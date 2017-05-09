@@ -70,21 +70,18 @@ obsMan.invert_observation()
 DEVELOPMENT TO-DO LIST:
 
 * Calculations and logic:
- - Create ATCA array configuration files.
+ - robust weighting calculation
  - In vriTk, check for valid numbers & disallow non-numeric characters.
-
-* Model browser & observation control
- - Convert Information panel in plotting window to a graphic.
     
 * Nice to have:
   - Array selection table: selection & plot should change by arrow and <Ret>
     should choose (currently mouse only).
-  - (robust weighting calculation)
   - (shadowing calculation.)
   - (Fit Gaussian to synthesized beam to evaluate size & PA)
   - option to save FITS files.
 
 * Plotting
+ - Convert Information panel in plotting window to a graphic.
  - scalebar on images.
  - primary beam circles on images.
  - legend for uv-coverage plot.
