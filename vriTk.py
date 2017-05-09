@@ -120,6 +120,11 @@ try:
 except ImportError:
     hasCV2 = False
 
+# Disable cv2 use on Mac OS because of buggy implementation
+if sys.platform=="darwin":
+    hasCV2 = False
+
+    
 from Imports.util_tk import *
 from Imports.vriCalc import *
 
@@ -564,6 +569,7 @@ class ArraySelector(ttk.Frame):
         self.columnconfigure(8, weight=20)
         self.rowconfigure(2, weight=1)
         self.rowconfigure(3, weight=1)
+        self.rowconfigure(4, weight=1)
 
         # Scatter plot of antenna locations
         self.antPosPlot = ScatterPlot(self, width=340, height=300,
@@ -637,8 +643,7 @@ class ArraySelector(ttk.Frame):
         self.addBtn = ttk.Button(self, text="Add", width=10,
                                  command=self._handler_add_button)
         self.canvas.create_window(135, 15, window=self.addBtn)
-        self.canvas.grid(column=5, row=3, columnspan=2, padx=0, pady=5,
-                         sticky="NS")
+        self.canvas.grid(column=5, row=3, columnspan=2, padx=0, pady=5)
         
         # Listbox showing the selected array configurations
         self.configOutTab = ScrolledTreeTab(self,
