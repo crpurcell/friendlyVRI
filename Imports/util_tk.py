@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 09-May-2017 by C. Purcell                                         #
+# MODIFIED: 11-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -89,14 +89,14 @@ class ScrolledTreeTab(ttk.Frame):
         
         # Limit to single row selections
         self.tree.configure(selectmode="browse")
-        self.tree.bind("<ButtonRelease-1>", self._on_row_select)
+        self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
         
     def _on_row_select(self, event=None):
         """Store the index of the selected row and generate an event.
         The original index of the column is stored in the 'text' property
         of the TreeView widget"""
         
-        item =  event.widget.identify("item", event.x, event.y)
+        item =  event.widget.selection()
         if not item=="":
             indx = event.widget.item(item, "text")
             self.rowSelected = int(indx)
@@ -269,13 +269,13 @@ class ScrolledTreeView(ttk.Frame):
         self.rowconfigure(0, weight=1)
 
         # Binding to handle row selections
-        self.tree.bind("<ButtonRelease-1>", self._on_row_select)
+        self.tree.bind("<<TreeviewSelect>>", self._on_row_select)
         
     def _on_row_select(self, event=None):
         """Triggered when a row is selected: fills the class variables with
         the text selected."""
         
-        item =  event.widget.identify("item", event.x, event.y)
+        item =  event.widget.selection()
         if not item=="":
             self.textSelected = event.widget.item(item, "text")
             self.textRootSelected = event.widget.item(item, "text")

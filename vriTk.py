@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 09-May-2017 by C.Purcell                                          #
+# MODIFIED: 11-May-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -520,7 +520,7 @@ class App(ttk.Frame):
         
         # Show the synthesised beam      
         self.pltFrm.plot_image("beam", np.abs(self.obsManager.beamArr),
-                               title="Synthesised Beam", pRng=(0, 99.97))
+                               title="Synthesised Beam", pRng=(-0.1, 0.5))
         
         # Apply the gridded uv-coverage and invert
         self.obsManager.invert_observation()
@@ -1184,12 +1184,18 @@ class PlotFrame(ttk.Frame):
         if imgArr.max()==imgArr.min():
             return ax
 
-        # Set the colour clip to percentiles, if requested
+        # Set the colour clip to fractions of range, if requested
         zMin = None
         zMax = None
         if pRng is not None:
-            zMin = np.nanpercentile(imgArr, pRng[0])
-            zMax = np.nanpercentile(imgArr, pRng[1])
+            zMin = np.nanmin(imgArr)
+            zMax = np.nanmax(imgArr)
+            zRng = zMin - zMax
+            zMin -= zRng * pRng[0]
+            zMax += zRng * pRng[1]
+        if zMax==zMin:
+            zMin = None
+            zMax = None
         
         # Show the image array
         ax.imshow(imgArr, cmap=plt.cm.cubehelix, interpolation="nearest",
