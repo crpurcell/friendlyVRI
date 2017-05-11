@@ -124,6 +124,17 @@ except ImportError:
 if sys.platform=="darwin":
     hasCV2 = False
 
+try:
+    import pygame
+    import pygame.camera
+    from pygame.locals import *
+    hasPyGame = True
+except ImportError:
+    hasPyGame = False
+
+
+hasCV2 = False
+    
     
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -743,7 +754,7 @@ class ObsInputs(ttk.Frame):
                             sticky="NSEW")
 
         # Camera button
-        if hasCV2:
+        if hasCV2 or hasPyGame:
             self.cameraPhoto = tk.PhotoImage(file='Imports/camera.gif')
             self.cameraBtn = ttk.Button(self, image=self.cameraPhoto,
                                         command=self._handler_capture_photo)
@@ -808,18 +819,35 @@ class ObsInputs(ttk.Frame):
     def _handler_capture_photo(self):
         """Capture a photo using the webcam."""
 
-        try:
-            cam = cv2.VideoCapture()
-            cam.open(0)
+        if hasCV2:
+            print "CV2"
+            try:
+                cam = cv2.VideoCapture()
+                cam.open(0)
+                for i in range(10):
+                    success, img = cam.read()
+                cam.release()
+                if success:
+                    cv2.imwrite("models/webcam.png", img)
+                    self.modelFile.set("webcam.png")
+                    self.modelPath = "models/webcam.png"
+                    self.event_generate("<<load_model_image>>")
+            except Exception:
+                pass
+        elif hasPyGame:
+            print "PYGAME"
+            pygame.init()
+            pygame.camera.init()
+            cam = pygame.camera.Camera("/dev/video0",(640,480))
+            cam.start()
             for i in range(10):
-                success, img = cam.read()
-            cam.release()
-            if success:
-                cv2.imwrite("models/webcam.png", img)
-                self.modelFile.set("webcam.png")
-                self.modelPath = "models/webcam.png"
-                self.event_generate("<<load_model_image>>")
-        except Exception:
+                img = cam.get_image()
+            cam.stop()
+            pygame.image.save(img, "models/webcam.png")
+            self.modelFile.set("webcam.png")
+            self.modelPath = "models/webcam.png"
+            self.event_generate("<<load_model_image>>")
+        else:
             pass
         
     def _round_scale(self, e=None):
