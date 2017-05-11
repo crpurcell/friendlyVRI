@@ -70,21 +70,18 @@ obsMan.invert_observation()
 DEVELOPMENT TO-DO LIST:
 
 * Calculations and logic:
- - robust weighting calculation
- - In vriTk, check for valid numbers & disallow non-numeric characters.
+  - robust weighting calculation
+  - In vriTk, check for valid numbers & disallow non-numeric characters.
     
 * Nice to have:
-  - Array selection table: selection & plot should change by arrow and <Ret>
-    should choose (currently mouse only).
-  - (shadowing calculation.)
-  - (Fit Gaussian to synthesized beam to evaluate size & PA)
-  - option to save FITS files.
+  - Convert Information panel in plotting window to a graphic.
+  - Array selection table: <Ret> should choose (currently mouse only).
+  - Fit Gaussian to synthesized beam to evaluate size & PA
 
 * Plotting
- - Convert Information panel in plotting window to a graphic.
+ - legend for uv-coverage plot.
  - scalebar on images.
  - primary beam circles on images.
- - legend for uv-coverage plot.
  - options to save publication quality plots (individualy & all 6 panels).
- - auto colour-scale for synthesised beam.
+ - option to save FITS files.
  - gamma slider for each MPL image figure.
