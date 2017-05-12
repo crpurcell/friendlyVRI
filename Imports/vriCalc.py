@@ -158,6 +158,7 @@ class observationManager:
         
         # uv-mask and synthesised beam
         self.uvMaskArr = None
+        self.uvCntArr = None
         self.beamArr = None
         
         # Observed FFT and final image
@@ -613,6 +614,7 @@ class observationManager:
         # Grid the uv-coverage
         try:
             self.uvMaskArr = np.zeros(self.modelFFTarr.shape, dtype=np.int32)
+            self.uvCntArr = np.zeros(self.modelFFTarr.shape, dtype=np.int32)
             for i, e in enumerate(self.arrsSelected):
                 u_lam = e["uArr_lam"].flatten()
                 v_lam = e["vArr_lam"].flatten()
@@ -624,6 +626,8 @@ class observationManager:
                     try:
                         self.uvMaskArr[int(v_pix[j]), int(u_pix[j])] = 1
                         self.uvMaskArr[int(v2_pix[j]), int(u2_pix[j])] = 1
+                        self.uvCntArr[int(v_pix[j]), int(u_pix[j])] += 1
+                        self.uvCntArr[int(v2_pix[j]), int(u2_pix[j])] += 1
                     except Exception:
                         # Ignore if visibility falls outside of the FFT image
                         pass

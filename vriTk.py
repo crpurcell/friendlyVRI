@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 11-May-2017 by C.Purcell                                          #
+# MODIFIED: 12-May-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -533,6 +533,8 @@ class App(ttk.Frame):
         lim_kl = parmDict["fftScale_lam"]/1e3
         self.pltFrm.plot_fft("obsFFT", self.obsManager.obsFFTarr, limit=lim_kl,
                              title="Observed FFT")
+        #self.pltFrm.plot_fft("obsFFT", self.obsManager.uvCntArr, limit=lim_kl,
+        #                     title="Observed FFT")
         
         # Update the status
         self._update_status()
@@ -1094,8 +1096,130 @@ class InformationPanel(ttk.Frame):
             self.fftLim.set("")
         else:
             self.fftLim.set(u"%.3f k\u03bb" % (p["fftScale_lam"]/1e3))
-            
 
+
+#-----------------------------------------------------------------------------#
+class InformationPanelGraphic(ttk.Frame):
+    """Frame presenting the information on the selected arrays, input model
+    and results"""
+    
+    def __init__(self, parent, width=500, rowHeight=20, axPad=(70,25),
+                 tickLen=10, nYticks=3, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        bgColour = ttk.Style().lookup("TFrame", "background")
+        bgColour = "lightgreen"
+        
+        # Canvas & graphic layout parameters
+        self.axPad = axPad
+        self.width = width
+        self.height = rowHeight * 5
+        self.canMin = self.axPad[0]
+        self.canMax = self.width - self.axPad[1]
+
+        # Plot uv-limits
+        self.plotMin = None
+        self.plotMax = None
+        self.uvCovMin = None
+        self.uvCovMax = None        
+        self.imgCovMin = None
+        self.imgCovMax = None
+        
+        # Insert the canvas
+        self.canvas = tk.Canvas(self, background=bgColour, width=self.width,
+                                height=self.height, highlightthickness=0)
+        self.canvas.grid(row=0, column=0, padx=0, pady=0)
+
+        # Layout grid coordinates
+        self.rowHeight = rowHeight
+        self.Y = np.arange(1, 5) * self.rowHeight
+
+        # Main labels
+        self.canvas.create_text(self.canMin-10, self.Y[1], anchor="e",
+                                text="Array:")
+        self.canvas.create_text(self.canMin-10, self.Y[2], anchor="e",
+                                text="Model:")
+        # Axis line 
+        self.canvas.create_line(self.canMin, self.Y[1] + self.rowHeight/2.0,
+                                self.canMax, self.Y[1] + self.rowHeight/2.0,
+                                width=1, fill="black",
+                                joinstyle=tk.MITER)
+        
+    def _draw_block(self, uvMin, uvMax, y1, y2, fill="blue", tag=""):
+        x1 =  self._world2canvas(uvMin)
+        x2 =  self._world2canvas(uvMax)
+        item = self.canvas.create_rectangle(x1, y1, x2, y2, outline="black",
+                                            fill=fill, width=1.0,
+                                            tag=("bar", tag))
+        
+    def _world2canvas(self, x):
+        """Convert an array of world coordinates to canvas coordinates"""
+
+        canRng = float(self.canMax - self.canMin)
+        plotRng = float(self.plotMax - self.plotMin)
+        l = (x-self.plotMin)*canRng/plotRng + self.canMin
+        
+        return l
+    
+    def _set_scale(self):
+        if self.uvCovMin is None and self.imgCovMin is None:
+            self.plotMin = None
+        else:
+            self.plotMin = min(i for i in [self.uvCovMin, self.imgCovMin]
+                               if i is not None)
+        if self.uvCovMax is None and self.imgCovMax is None:
+            self.plotMax = None
+        else:
+            self.plotMax = max(i for i in [self.uvCovMax, self.imgCovMax]
+                               if i is not None)
+        print 
+        print "ARRAY RNG", self.uvCovMin, self.uvCovMax
+        print "IMAGE RNG",  self.imgCovMin, self.imgCovMax
+        print "PLOT RNG", self.plotMin, self.plotMax 
+        print 
+        
+    def update(self, parmDict):
+        """Update the graphic using a dictionary."""
+        
+        p = parmDict
+
+        # uv-coverage limits
+        if not (p["uvRngMin_lam"] is None or p["uvRngMax_lam"] is None):
+            self.uvCovMin = p["uvRngMin_lam"]
+            self.uvCovMax = p["uvRngMax_lam"]
+        else:
+            self.uvCovMin = None
+            self.uvCovMax = None
+        self._set_scale()            
+
+        # Model coverage limits
+        if not (p["pixScaleFFTX_lam"] is None or p["pixScaleFFTY_lam"] is None
+                or p["fftScale_lam"] is None):     
+            self.imgCovMin = min(i for i in [p["pixScaleFFTX_lam"],
+                                             p["pixScaleFFTY_lam"]]
+                                 if i is not None)
+            self.imgCovMax = p["fftScale_lam"]
+        else:
+            self.imgCovMin = None
+            self.imgCovMax = None            
+        self._set_scale()
+
+        # Re-plot the bars
+        itemLst = self.canvas.find_withtag("bar")
+        for item in itemLst:
+            self.canvas.delete(item)
+            
+        if self.uvCovMin and self.uvCovMax:
+            self._draw_block(self.uvCovMin, self.uvCovMax,
+                             self.Y[1]-self.rowHeight/2,
+                             self.Y[1]+self.rowHeight/2)
+            
+        if self.imgCovMin and self.imgCovMax:
+            self._draw_block(self.imgCovMin, self.imgCovMax,
+                             self.Y[2]-self.rowHeight/2,
+                             self.Y[2]+self.rowHeight/2, fill="red")
+
+            
 #-----------------------------------------------------------------------------#
 class PlotFrame(ttk.Frame):
     """Frame showing the plots produced by the virtual interferometer."""
@@ -1117,6 +1241,7 @@ class PlotFrame(ttk.Frame):
         
         # Create the blank figure canvas and grid its tk canvas
         self.fig = Figure(figsize=(15.0, 9.0), facecolor=bgColour)
+        #self.fig = Figure(figsize=(12.0, 8.0), facecolor=bgColour)
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
@@ -1294,6 +1419,8 @@ class PlotFrame(ttk.Frame):
         
         self.fig.subplots_adjust(left=0.06, right=0.97, top=0.95, bottom=0.07,
                                  wspace=0.20, hspace=0.23)
+        #self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
+        #                         wspace=0.27, hspace=0.24)
         self.toolbar.update()
         self.figCanvas.show()
 
