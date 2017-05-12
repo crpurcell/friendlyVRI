@@ -368,11 +368,6 @@ class App(ttk.Frame):
         """When the observation parameters change in the GUI, reset the 
         calculations."""
 
-        # Only operate if a model is already loaded
-        stateDict = self.obsManager.get_status()
-        if not stateDict["statusuvCalc"]:
-            return
-        
         # Reset the common parameters
         try:
             self.obsManager.set_obs_parms(float(self.inputs.freq_MHz.get()),
@@ -380,8 +375,10 @@ class App(ttk.Frame):
         except Exception:
             pass
         
-        # Update the status
-        self._update_status()
+        # Only operate if a uv-calculations have been performed
+        stateDict = self.obsManager.get_status()
+        if stateDict["statusuvCalc"]:
+            self._update_status()
         
     def _on_pixscale_change(self, event=None):
         """When the pixel scale is changed in the GUI, clear the FFT plot."""
