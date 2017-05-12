@@ -315,6 +315,9 @@ class App(ttk.Frame):
         # Query the scales and update the information panel
         parmDict = self.obsManager.get_scales()
         self.pltFrm.infoPanel.update(parmDict)
+
+        # Force an update of the GUI
+        root.update()
         
     # Event handlers bound to virtual events ---------------------------------#
     
@@ -365,9 +368,17 @@ class App(ttk.Frame):
         """When the observation parameters change in the GUI, reset the 
         calculations."""
 
+        # Only operate if a model is already loaded
+        stateDict = self.obsManager.get_status()
+        if not stateDict["statusuvCalc"]:
+            return
+        
         # Reset the common parameters
-        self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
-                                      self.inputs.dec_deg.get())
+        try:
+            self.obsManager.set_obs_parms(float(self.inputs.freq_MHz.get()),
+                                          float(self.inputs.dec_deg.get()))
+        except Exception:
+            pass
         
         # Update the status
         self._update_status()
@@ -381,8 +392,12 @@ class App(ttk.Frame):
             return
 
         # Reset the pixel scale
-        pixScale_asec = self.inputs.pixScale_asec.get()
-        self.obsManager.set_pixscale(pixScale_asec)
+        try:
+            pixScale_asec = float(self.inputs.pixScale_asec.get())
+            self.obsManager.set_pixscale(pixScale_asec)
+        except Exception:
+            self.inputs.extent.set("")
+            return
         
         # Set the extent label in the load frame
         pixScaleImg_deg = self.obsManager.pixScaleImg_asec / 3600.0
@@ -392,9 +407,10 @@ class App(ttk.Frame):
                                              ang2str(nX * pixScaleImg_deg),
                                              ang2str(nY * pixScaleImg_deg))
         self.inputs.extent.set(text)
-        
-        # Update the status
-        self._update_status()
+
+        # Only update the status if this is the first change after processing
+        if stateDict["statusModelFFT"]:
+            self._update_status()
         
     def _on_plot_modFFT(self, event=None):
         """Show the FFT of the model image."""
@@ -499,7 +515,7 @@ class App(ttk.Frame):
             
             # Update the status
             self._update_status()
-        
+            
         # Calculate the uv-coverage if not cached
         stateDict = self.obsManager.get_status()
         if not stateDict['statusuvCalc']:
@@ -511,23 +527,10 @@ class App(ttk.Frame):
             
             # Update the status
             self._update_status()
-            
+        
         # Grid the uv-coverage to make a mask
         self.obsManager.grid_uvcoverage()
-        
-        # Calculate the PSF
-        self.obsManager.calc_beam()
-        
-        # Show the synthesised beam      
-        self.pltFrm.plot_image("beam", np.abs(self.obsManager.beamArr),
-                               title="Synthesised Beam", pRng=(-0.1, 0.5))
-        
-        # Apply the gridded uv-coverage and invert
-        self.obsManager.invert_observation()
-        
-        # Update the status
-        self._update_status()
-        
+
         # Show the observed FFT
         parmDict = self.obsManager.get_scales()
         lim_kl = parmDict["fftScale_lam"]/1e3
@@ -539,10 +542,23 @@ class App(ttk.Frame):
         # Update the status
         self._update_status()
         
+        # Calculate the PSF
+        self.obsManager.calc_beam()
+        
+        # Show the synthesised beam      
+        self.pltFrm.plot_image("beam", np.abs(self.obsManager.beamArr),
+                               title="Synthesised Beam", pRng=(-0.1, 0.5))
+        
+        # Update the status
+        self._update_status()
+        
+        # Invert the observed FFT
+        self.obsManager.invert_observation()
+        
         # Show the observed image
         self.pltFrm.plot_image("obsImg", np.abs(self.obsManager.obsImgArr),
                                title="Observed Image")
-        
+
         # Update the status
         self._update_status()
 
@@ -1341,6 +1357,8 @@ class PlotFrame(ttk.Frame):
             ax = self.fig.add_subplot(loc)
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
+        ax.xaxis.set_major_locator(MaxNLocator(4))
+        ax.yaxis.set_major_locator(MaxNLocator(4))
         ax.set_title(title)
         
         # Catch blank arrays
@@ -1378,6 +1396,8 @@ class PlotFrame(ttk.Frame):
             ax = self.fig.add_subplot(loc)
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
+        ax.xaxis.set_major_locator(MaxNLocator(4))
+        ax.yaxis.set_major_locator(MaxNLocator(4))
         ax.set_title(title)
 
         # Set the z-order of the plots based on the uv-coverage scale

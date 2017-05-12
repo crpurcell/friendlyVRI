@@ -71,10 +71,9 @@ DEVELOPMENT TO-DO LIST:
 
 * Calculations and logic:
   - robust weighting calculation
-  - In vriTk, check for valid numbers & disallow non-numeric characters.
     
 * Nice to have:
-  - Convert Information panel in plotting window to a graphic.
+  - Convert Information panel in plotting window to table.
   - Array selection table: <Ret> should choose (currently mouse only).
   - Fit Gaussian to synthesized beam to evaluate size & PA
 
@@ -83,5 +82,5 @@ DEVELOPMENT TO-DO LIST:
  - scalebar on images.
  - primary beam circles on images.
  - options to save publication quality plots (individualy & all 6 panels).
- - option to save FITS files.
  - gamma slider for each MPL image figure.
+ - option to save FITS files.

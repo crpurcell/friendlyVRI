@@ -638,6 +638,16 @@ class observationManager:
                 if self.debug:
                     print(traceback.format_exc())
                 return
+
+        # Apply the gridded uv-coverage to the model FFT
+        try:
+            self.obsFFTarr = self.modelFFTarr.copy()*self.uvMaskArr
+        except Exception:
+                if self.verbose:
+                    print("Masking failed!")
+                if self.debug:
+                    print(traceback.format_exc())
+                return
                     
         # Print the percentage coverage
         if self.verbose:
@@ -690,9 +700,7 @@ class observationManager:
         self.statusObsDone = False
         
         try:
-            # Apply the gridded uv-coverage to the model FFT
-            self.obsFFTarr = self.modelFFTarr.copy()*self.uvMaskArr
-
+            
             # Invert to produce the final image
             self.obsImgArr = np.fft.ifft2(np.fft.ifftshift(self.obsFFTarr))
         except Exception:
