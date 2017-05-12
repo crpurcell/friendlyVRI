@@ -502,6 +502,18 @@ class App(ttk.Frame):
     def _on_do_observation(self, event=None):
         """Perform the bulk of the observing steps"""
         
+        # Calculate the uv-coverage if not cached
+        stateDict = self.obsManager.get_status()
+        if not stateDict['statusuvCalc']:
+            self.obsManager.calc_uvcoverage()
+
+            # Plot the uv-coverage
+            self.pltFrm.plot_uvcov("uvCov", self.obsManager.arrsSelected,
+                                   title="uv-Coverage")
+            
+            # Update the status
+            self._update_status()
+        
         # Calculate the Fourier transform of the model if not cached
         stateDict = self.obsManager.get_status()
         if not stateDict['statusModelFFT']:
@@ -516,18 +528,6 @@ class App(ttk.Frame):
             # Update the status
             self._update_status()
             
-        # Calculate the uv-coverage if not cached
-        stateDict = self.obsManager.get_status()
-        if not stateDict['statusuvCalc']:
-            self.obsManager.calc_uvcoverage()
-
-            # Plot the uv-coverage
-            self.pltFrm.plot_uvcov("uvCov", self.obsManager.arrsSelected,
-                                   title="uv-Coverage")
-            
-            # Update the status
-            self._update_status()
-        
         # Grid the uv-coverage to make a mask
         self.obsManager.grid_uvcoverage()
 
