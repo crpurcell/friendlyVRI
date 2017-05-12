@@ -1172,11 +1172,11 @@ class InformationPanelGraphic(ttk.Frame):
         else:
             self.plotMax = max(i for i in [self.uvCovMax, self.imgCovMax]
                                if i is not None)
-        print 
-        print "ARRAY RNG", self.uvCovMin, self.uvCovMax
-        print "IMAGE RNG",  self.imgCovMin, self.imgCovMax
-        print "PLOT RNG", self.plotMin, self.plotMax 
-        print 
+        #print 
+        #print "ARRAY RNG", self.uvCovMin, self.uvCovMax
+        #print "IMAGE RNG",  self.imgCovMin, self.imgCovMax
+        #print "PLOT RNG", self.plotMin, self.plotMax 
+        #print 
         
     def update(self, parmDict):
         """Update the graphic using a dictionary."""
