@@ -374,11 +374,9 @@ class App(ttk.Frame):
                                           float(self.inputs.dec_deg.get()))
         except Exception:
             pass
-        
-        # Only operate if a uv-calculations have been performed
-        stateDict = self.obsManager.get_status()
-        if stateDict["statusuvCalc"]:
-            self._update_status()
+
+        # Update the status
+        self._update_status()
         
     def _on_pixscale_change(self, event=None):
         """When the pixel scale is changed in the GUI, clear the FFT plot."""
