@@ -1240,8 +1240,7 @@ class PlotFrame(ttk.Frame):
                         "obsImg":   [None, "236", 0]}
         
         # Create the blank figure canvas and grid its tk canvas
-        self.fig = Figure(figsize=(15.0, 9.0), facecolor=bgColour)
-        #self.fig = Figure(figsize=(12.0, 8.0), facecolor=bgColour)
+        self.fig = Figure(figsize=(13.0, 8.0), facecolor=bgColour)
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
@@ -1417,10 +1416,8 @@ class PlotFrame(ttk.Frame):
     def show(self):
         """Show the plots in the plotting window."""
         
-        self.fig.subplots_adjust(left=0.06, right=0.97, top=0.95, bottom=0.07,
-                                 wspace=0.20, hspace=0.23)
-        #self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
-        #                         wspace=0.27, hspace=0.24)
+        self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
+                                 wspace=0.27, hspace=0.24)
         self.toolbar.update()
         self.figCanvas.show()
 
