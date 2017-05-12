@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 09-May-2017 by C. Purcell                                         #
+# MODIFIED: 12-May-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -72,6 +72,7 @@
 
 import re
 import glob
+import copy
 import traceback
 from collections import OrderedDict as od
 import numpy as np
@@ -422,7 +423,7 @@ class observationManager:
 
                 # Calculate the elevation curve and mask HA-range
                 dummy, elArr_deg = \
-                            self.calc_elevation_curve(e["telescope"], haArr_hr)
+                        self.calc_elevation_curve(e["telescope"], haArr_hr)
                 haArr_rad[elArr_deg<=0] = np.nan
                     
                 # Fill the uv-plane with samples over the hour-angle range
@@ -774,14 +775,15 @@ class observationManager:
         haArr_rad = np.radians(haArr_hr * 15.0)
         dec_rad = np.radians(self.dec_deg)
 
-        elArr_deg = None
-        telescopeLst = self.telescopeLatDict.keys()
-        if telescope in telescopeLst:
+        telescope = np.bytes_(telescope).decode("utf-8")  # Python 3 fix
+        if telescope in self.telescopeLatDict.keys():
             latitude_rad = np.radians(self.telescopeLatDict[telescope])
             elArr_rad  = (np.sin(latitude_rad) * np.sin(dec_rad) +
                 np.cos(latitude_rad) * np.cos(dec_rad) * np.cos(haArr_rad))
             elArr_deg = np.degrees(elArr_rad)
             elArr_deg[elArr_deg<0] = 0.0
+        else:
+            return None, None
             
         return haArr_hr, elArr_deg
 

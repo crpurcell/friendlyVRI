@@ -102,7 +102,8 @@ except Exception:  # Python 3.x
     import tkinter.messagebox as tkMessageBox
     import tkinter.filedialog as tkFileDialog
     import tkinter.simpledialog as tkSimpleDialog
-    import tkinter.scrolledtext as tkScrolledText
+    from tkinter.scrolledtext import ScrolledText as tkScrolledText
+
 import numpy as np
 import matplotlib as mpl
 mpl.use("TkAgg")
@@ -123,7 +124,6 @@ except ImportError:
 # Disable cv2 use on Mac OS because of buggy implementation
 if sys.platform=="darwin":
     hasCV2 = False
- 
     
 from Imports.util_tk import *
 from Imports.vriCalc import *
@@ -443,7 +443,7 @@ class App(ttk.Frame):
         for i, e in enumerate(telescopeLst):
             haArr_hr, elArr_deg = self.obsManager.calc_elevation_curve(e)
             ax.plot(haArr_hr, elArr_deg, color=colLst[i%len(colLst)],
-                    label=e)
+                    label=e.decode("utf-8"))
 
         # Format labels and legend
         ax.set_xlim(-12.0, 12.0)
@@ -1387,11 +1387,11 @@ class PlotFrame(ttk.Frame):
             for i, e in enumerate(arrsSelected):
                 oLst.append(i)
                 sLst.append(e["scaleMin_deg"])
-            multiLst = zip(sLst, oLst)
+            multiLst = list(zip(sLst, oLst))
             multiLst.sort()
             sLst, oLst = zip(*multiLst)
             zLst = range(len(oLst))
-            multiLst = zip(oLst, zLst)
+            multiLst = list(zip(oLst, zLst))
             multiLst.sort()
             oLst, zLst = zip(*multiLst)
             
