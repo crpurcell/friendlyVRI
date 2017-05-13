@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 12-May-2017 by C.Purcell                                          #
+# MODIFIED: 13-May-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -816,7 +816,7 @@ class ObsInputs(ttk.Frame):
                 if len(s)==2:
                     self.modelFile.set(s[-1])
                     self.modelPath = modelPath
-        self.event_generate("<<load_model_image>>")
+                    self.event_generate("<<load_model_image>>")
         
     def _handler_capture_photo(self):
         """Capture a photo using the webcam."""
@@ -1501,6 +1501,22 @@ class MPLnavToolbar(NavigationToolbar2TkAgg):
 if __name__ == "__main__":
     root = tk.Tk()
 
+    # Hack to hide dot files in tk dialog
+    # https://mail.python.org/pipermail/tkinter-discuss/2015-August/003762.html
+    try:
+        # call a dummy dialog with an impossible option to initialize the file
+        # dialog without really getting a dialog window; this will throw a
+        # TclError, so we need a try...except :
+        try:
+            root.tk.call('tk_getOpenFile', '-foobarbaz')
+        except:
+            pass
+        # now set the magic variables accordingly
+        root.tk.call('set', '::tk::dialog::file::showHiddenBtn', '1')
+        root.tk.call('set', '::tk::dialog::file::showHiddenVar', '0')
+    except:
+        pass
+    
     # Scaling tests
     #root.tk.call('tk', 'scaling', 4.0)
     #root.tk.call('tk', 'scaling', '-displayof', '.', 50)
