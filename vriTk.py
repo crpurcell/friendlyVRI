@@ -267,7 +267,7 @@ class App(ttk.Frame):
         self.helpWin = tk.Toplevel(self, background=self.bgColour)
         self.helpWin.title(title)
         self.helpTxt = tkScrolledText(self.helpWin, width=80,
-                                      font=tkFont.nametofont("TkFixedFont"))
+                                      font=fontFixed)
         self.helpTxt.config(state="normal")
         with open(fileName,'r') as f:
             text = f.read()
@@ -1499,9 +1499,26 @@ class MPLnavToolbar(NavigationToolbar2TkAgg):
     
 #-----------------------------------------------------------------------------#
 if __name__ == "__main__":
+    
     root = tk.Tk()
 
-    # Hack to hide dot files in tk dialog
+    # Force platform specific colours and fonts
+    if sys.platform=="darwin":
+        bgColour = "#ececec"
+        fontSize = 12
+    else:
+        bgColour = ttk.Style().lookup("TFrame", "background")
+        fontSize = 10        
+    ttk.Style().configure("TFrame", background=bgColour)
+    ttk.Style().configure("TLabelframe", background=bgColour)
+    ttk.Style().configure("TLabel", background=bgColour)
+    fontDefault = tkFont.nametofont("TkDefaultFont")
+    fontDefault.configure(size=fontSize)
+    fontFixed = tkFont.nametofont("TkFixedFont")
+    fontFixed.configure(size=fontSize)
+    root.option_add("*Font", fontDefault)
+    
+    # Hack to hide dot files in the Linux tk file dialog
     # https://mail.python.org/pipermail/tkinter-discuss/2015-August/003762.html
     try:
         # call a dummy dialog with an impossible option to initialize the file
@@ -1517,26 +1534,10 @@ if __name__ == "__main__":
     except:
         pass
     
-    # Scaling tests
+    # Attempt to compensate for high-DPI displays (not working)
     #root.tk.call('tk', 'scaling', 4.0)
     #root.tk.call('tk', 'scaling', '-displayof', '.', 50)
-
-    # Force widget background colours
-    if sys.platform=="darwin":
-        bgColour = "#ececec"
-        fontSize = 12
-    else:
-        bgColour = ttk.Style().lookup("TFrame", "background")
-        fontSize = 10
-    ttk.Style().configure("TFrame", background=bgColour)
-    ttk.Style().configure("TLabelframe", background=bgColour)
-    ttk.Style().configure("TLabel", background=bgColour)
-
-    # Force font
-    default_font = tkFont.nametofont("TkDefaultFont")
-    default_font.configure(size=fontSize)
-    root.option_add("*Font", default_font)
-
+    
     # Grid the main window and start mainloop
     app = App(root, bgColour).pack(side="top", fill="both", expand=True)
     root.mainloop()
