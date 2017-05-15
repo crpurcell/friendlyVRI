@@ -19,6 +19,7 @@ and 3.x. You will need the following modules installed:
 * numpy
 * matplotlib
 * pil *or* pillow
+* tkinter
 * opencv (optional - enables web-cam image capture)
 
 If you use the default python interpreter these can usually be
