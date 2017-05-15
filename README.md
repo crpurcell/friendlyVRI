@@ -114,4 +114,4 @@ be directed to 'cormac.purcell (at) mq.edu.au'.
 
 Copyright (c) 2017 Cormac R. Purcell and Roy Truelove.
 
-Released under the [MIT licence](LICENCE).
+Released under the [MIT licence](LICENCE.txt).
