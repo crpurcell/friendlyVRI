@@ -23,10 +23,10 @@ and 3.x. You will need the following modules installed:
 
 If you use the default python interpreter these can usually be
 installed from the command line on Linux or Mac OS X by executing the
-command 'sudo pip install <module_name>'. If you are running Anaconda
-scientific python the command is 'conda install <module_name>'.
+command ```sudo pip install <module_name>```. If you are running Anaconda
+scientific python the command is ```conda install <module_name>```.
 
-##### A note about Mac OS X:
+##### A note about opencv on Mac OS X:
 
 The default installation of opencv on Anaconda for Mac OS X seems to
 be broken (causes a segmentation fault). Some folk on the internet
@@ -94,6 +94,6 @@ staff at observatories around the world:
 ## Credits and Contact Information:
 
 The Friendly Virtual Radio Interferometer tool was written by **Cormac
-Purcell** and **Roy Truelove**, Macquarie University,
+Purcell** and **Roy Truelove** at Macquarie University,
 Sydney. Questions, comments, feature requests and bug reports should be
 directed to 'cormac.purcell (at) mq.edu.au'.
