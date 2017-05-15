@@ -76,7 +76,7 @@ This software is designed to be a simple 'quick-look' tool and ignores
 lots of effects such as non-co-planar arrays, time averaging,
 multi-frequency synthesis etc. It also sets the sampling grid in the
 Fourier domain from the extent and pixel spacing of the input image,
-which can result under-sampled synthesised beams and artefacts. At the
+which can result in under-sampled synthesised beams and artefacts. At the
 moment, the observing simulations are assumed to be noise-free and no
 attempt is made at calculating sensitivities. Tasks to perform robust
 simulations of an interfometric observation exist in CASA, MIRIAD and
