@@ -1,4 +1,5 @@
 # The Friendly Virtual Radio Interferometer
+
 The Friendly Virtual Radio Interferometer (VRI) is designed to
 simulate astronomical observations using linked arrays of radio
 antennas in a technique called *earth rotation aperture synthesis*. As
@@ -69,8 +70,8 @@ process: model image, fast Fourier transform (FFT) of the model, plot
 of uv-coverage, filtered model FFT, synthesised beam and final
 observed image.
 
-See the file [HELP.txt](HELP.txt) or the help menu for step-by-step
-instructions.
+See the [HELP](HELP.txt) or the help menu in the application for
+step-by-step instructions.
 
 Note that the calculations underlying the graphical application are
 split into the file ```vriCalc.py``` to facilitate use with
