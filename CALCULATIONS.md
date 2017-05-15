@@ -1,4 +1,3 @@
-
 # The ObservationManager Class
 
 The calculations underlying the graphical application are separated into the
