@@ -65,7 +65,7 @@ different sampling cadence.
 * Apply the uv-coverage of the observations to the model to simulate an
 observation.
 
-The plotting window shows inputs, outputs an intermediate steps in the
+The plotting window shows inputs, outputs and intermediate steps in the
 process: model image, fast Fourier transform (FFT) of the model, plot
 of uv-coverage, filtered model FFT, synthesised beam and final
 observed image.
