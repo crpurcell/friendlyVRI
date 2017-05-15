@@ -158,11 +158,11 @@ class App(ttk.Frame):
         self.menuBar.add_cascade(label="File", menu=self.fileMenu)
         self.helpMenu = tk.Menu(self.menuBar, tearoff=0)
         self.helpMenu.add_command(label="Instructions",
-                                  command=lambda fileName="HELP.md",
+                                  command=lambda fileName="docs/HELP.txt",
                                   title="Vriendly VRI Instructions" :
                                   self._show_textfile(fileName, title))
         self.helpMenu.add_command(label="About",
-                                  command=lambda fileName="README.md",
+                                  command=lambda fileName="docs/ABOUT.txt",
                                   title="About Friendly VRI" :
                                   self._show_textfile(fileName, title))
         self.menuBar.add_cascade(label="Help", menu=self.helpMenu)

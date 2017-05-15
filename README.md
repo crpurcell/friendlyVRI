@@ -78,6 +78,16 @@ split into the file ```vriCalc.py``` to facilitate use with
 alternative interfaces. See [CALCULATIONS](CALCULATIONS.md) for a
 simple example.
 
+## Defining Custom Arrays
+
+The location and layout of antennas in each array configuration is
+defined in ASCII files under the ```arrays/``` directory. You can
+define your own arrays by copying the existing templates and supplying
+a list of coordinate offsets in the East and North directions, in units
+of meters. The software will read these on start-up and they will
+appear in the list of available arrays. Note that the combination of
+'telescope' + 'array' name must be unique.
+
 ## Caveats
 
 This software is designed to be a simple 'quick-look' tool and ignores
