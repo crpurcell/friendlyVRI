@@ -26,6 +26,9 @@ installed from the command line on Linux or Mac OS X by executing the
 command ```sudo pip install <module_name>```. If you are running Anaconda
 scientific python the command is ```conda install <module_name>```.
 
+Once all required modules are installed, click on the 'View on GitHub'
+link at the top of the page and then the 'Clone or download' button.
+
 ##### A note about opencv on Mac OS X:
 
 The default installation of opencv on Anaconda for Mac OS X seems to
