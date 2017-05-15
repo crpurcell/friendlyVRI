@@ -1,6 +1,4 @@
 # The Friendly Virtual Radio Interferometer
-![fVRI Control Window](fVRI_control_win.png)
-![fVRI Plot Window](fVRI_plot_win.png)
 The Friendly Virtual Radio Interferometer (VRI) is designed to
 simulate astronomical observations using linked arrays of radio
 antennas in a technique called *earth rotation aperture synthesis*. As
@@ -8,6 +6,10 @@ the successor to the original [Java-based
 VRI](http://adass.org/adass/proceedings/adass97/mckayn.html) it
 focuses on simulating the effect of combination different antenna
 layouts.
+
+![fVRI Control Window](fVRI_control_win.png)
+
+![fVRI Plot Window](fVRI_plot_win.png)
 
 ## Installation:
 
@@ -17,7 +19,7 @@ and 3.x. You will need the following modules installed:
 * numpy
 * matplotlib
 * pil *or* pillow
-* opencv (optional - enables webcam image capture)
+* opencv (optional - enables web-cam image capture)
 
 If you use the default python interpreter, these can usually be
 installed from the command line on Linux or Mac OS X by executing the
@@ -27,7 +29,7 @@ scientific python the command is 'conda install <module_name>'.
 ##### A note about Mac OS X:
 
 The default installation of *opencv* on Anaconda for Mac OS X seems to be broken
-(causes a segmentation fault). If you want to exable the webcam capture button
+(causes a segmentation fault). If you want to enable the web-cam capture button
 for Mac OS X comment out the following lines in the 'vriTk.py' code:
 
 ```python
@@ -41,7 +43,7 @@ opencv module using ```conda install -c https://conda.binstar.org/menpo opencv``
 ## Usage
 
 Start the application by executing ```python vriTk.py``` from the
-command line. The interface is (hopefully!) very intuative and is
+command line. The interface is (hopefully!) very intuitive and is
 split into a control window and a plotting window. The plotting window
 can be maximised and buttons at the lower-right enable jumping quickly
 between the two windows. The control window allows you to:
@@ -81,9 +83,9 @@ Other excellent virtual interfeometer software has been developed by staff at ob
 * [APSYNSIM](https://launchpad.net/apsynsim) is a 'full-fat' simulator
   by Ivan Marti-Vidal at Onsala Space Observatory, Sweden. 
 * [Pynterferometer](http://www.jb.man.ac.uk/pynterferometer/index.html)
-  is a public demonstration tool by Adam Avison and Sam Georgeand has
+  is a public demonstration tool by Adam Avison and Sam George and has
   excellent documentation in the accompanying
-  [paper](http://iopscience.iop.org/article/10.1088/0143-0807/34/1/7).
+  [paper](https://arxiv.org/abs/1211.0228)
 
 
 ## Credits and Contact Information:
