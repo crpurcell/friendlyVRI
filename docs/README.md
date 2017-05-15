@@ -7,9 +7,9 @@ VRI](http://adass.org/adass/proceedings/adass97/mckayn.html), it
 focuses on simulating the effect of combining different antenna
 layouts.
 
-![fVRI Control Window](fVRI_control_win.png)
+![fVRI Control Window](docs/fVRI_control_win.png)
 
-![fVRI Plot Window](fVRI_plot_win.png)
+![fVRI Plot Window](docs/fVRI_plot_win.png)
 
 ## Installation:
 
@@ -69,7 +69,13 @@ process: model image, fast Fourier transform (FFT) of the model, plot
 of uv-coverage, filtered model FFT, synthesised beam and final
 observed image.
 
-See the file 'HELP.txt' or the help menu for step-by-step instructions.
+See the file [HELP.txt](HELP.txt) or the help menu for step-by-step
+instructions.
+
+Note that the calculations underlying the graphical application are
+split into the file ```vriCalc.py``` to facilitate use with
+alternative interfaces. See [CALCULATIONS](CALCULATIONS.md) for a
+simple example.
 
 ## Caveats
 
@@ -100,5 +106,11 @@ staff at observatories around the world:
 
 The Friendly Virtual Radio Interferometer tool was written by **Cormac
 Purcell** and **Roy Truelove** at Macquarie University,
-Sydney. Questions, comments, feature requests and bug reports should be
-directed to 'cormac.purcell (at) mq.edu.au'.
+Sydney. Questions, comments, feature requests and bug reports should
+be directed to 'cormac.purcell (at) mq.edu.au'.
+
+## Licence
+
+Copyright (c) 2017 Cormac R. Purcell and Roy Truelove.
+
+Released under the [MIT licence](LICENCE.txt).
