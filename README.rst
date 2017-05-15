@@ -36,14 +36,16 @@ USAGE INSTRUCTIONS
 
 The interface is designed to be relatively intuitive for non-experts. The
 control window allows you to:
-* Plot the layout of the antennas in an ``array configuration`` for a particular
+
+- Plot the layout of the antennas in an ``array configuration`` for a particular
   telescope.
-* Create a list of observations to be done using different array
+- Create a list of observations to be done using different array
   configurations, over different time ranges (hour angle ranges) and with
   different sampling cadence.
-* Load in a model image and set its angular scale on the sky.
-* Apply the uv-coverage of the observations to the model to simulate an
+- Load in a model image and set its angular scale on the sky.
+- Apply the uv-coverage of the observations to the model to simulate an
   observation.
+  
 The plotting window shows inputs, outputs an intermediate steps in the process:
 model image, fast Fourier transform (FFT) of the model, plot of uv-coverage,
 filtered model FFT, synthesised beam and final observed image.
