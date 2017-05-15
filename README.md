@@ -70,7 +70,7 @@ process: model image, fast Fourier transform (FFT) of the model, plot
 of uv-coverage, filtered model FFT, synthesised beam and final
 observed image.
 
-See the [HELP](HELP.txt) or the help menu in the application for
+See the [HELP](HELP.md) or the help menu in the application for
 step-by-step instructions.
 
 Note that the calculations underlying the graphical application are
