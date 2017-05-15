@@ -47,11 +47,12 @@ if sys.platform=="darwin":
 
 ## Usage
 
-Start the application by executing ```python vriTk.py``` from the
-command line. The interface is (hopefully) very intuitive and is
-split into a control window and a plotting window. The plotting window
-can be maximised and buttons at the lower-right enable jumping quickly
-between the two windows. The control window allows you to:
+Start the application by executing ```python vriTk.py``` on the
+command line from within the ```friendlyVRI/``` directory. The
+interface is (hopefully) very intuitive and is split into a control
+window and a plotting window. The plotting window can be maximised and
+buttons at the lower-right enable jumping quickly between the two
+windows. The control window allows you to:
 
 * Plot the layout of the antennas in an array configuration for a
 particular telescope.
