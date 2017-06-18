@@ -23,10 +23,15 @@ and 3.x. You will need the following modules installed:
 * tkinter
 * opencv (optional - enables web-cam image capture)
 
-If you use the default python interpreter these can usually be
+If you use the default system python interpreter, these can usually be
 installed from the command line on Linux or Mac OS X by executing the
-command ```sudo pip install <module_name>```. If you are running Anaconda
-scientific python the command is ```conda install <module_name>```.
+command
+
+```sudo pip install <module_name>```.
+
+If you are running Anaconda scientific python the command is
+
+```conda install <module_name>```.
 
 Once all required modules are installed, click on the 'View on GitHub'
 link at the top of the page and then the 'Clone or download' button.
@@ -36,8 +41,11 @@ link at the top of the page and then the 'Clone or download' button.
 The default installation of opencv on Anaconda for Mac OS X seems to
 be broken (causes a segmentation fault). Some folk on the internet
 have reported success installing a working opencv module using the
-command ```conda install -c https://conda.binstar.org/menpo
-opencv```. If this works for you and you want to enable the web-cam
+command
+
+```conda install -c https://conda.binstar.org/menpo opencv```.
+
+If this works for you and you want to enable the web-cam
 capture button for Mac OS X, comment out the following lines in the
 'vriTk.py' code:
 
@@ -70,7 +78,7 @@ process: model image, fast Fourier transform (FFT) of the model, plot
 of uv-coverage, filtered model FFT, synthesised beam and final
 observed image.
 
-See the [HELP](HELP.md) or the help menu in the application for
+See [HELP](HELP.md) or the help menu in the application for
 step-by-step instructions.
 
 Note that the calculations underlying the graphical application are
