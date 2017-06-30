@@ -10,13 +10,14 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 12-May-2017 by C. Purcell                                         #
+# MODIFIED: 30-Jun-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 #  observationManager (class)                                                 #
 #      _reset_uv_vars       ... reset variables associated with uv-coverage   #
 #      _reset_model_vars    ... reset variables associated with model image   #
+#      _load_one_array      ... load a single array configuration             #
 #      _load_all_arrays     ... create the table of available array configs   #
 #      get_available_arrays ... list the available arrays                     #
 #      select_array         ... select an array config & HA-range             #
@@ -204,6 +205,23 @@ class observationManager:
         self.obsFFTarr = None
         self.obsImgArr = None
         
+    def _load_one_array(self, arrayFile):
+        """Load a single ASCII array file into memory."""
+        
+        # Create an antArray object for each and store in a dictionary
+        ar = antArray(arrayFile)
+        if ar.telescope is not None:
+            key = ar.telescope + "_" + ar.config
+            value = {"row": len(self.arrsAvailable),
+                     "telescope": ar.telescope,
+                     "config": ar.config,
+                     "antArray": ar}
+            self.arrsAvailable[key] = value
+
+            # Populate the telescope lookup tables
+            self.telescopeLatDict[ar.telescope] = ar.latitude_deg
+            self.telescopeDiamDict[ar.telescope] = ar.diameter_m
+            
     def _load_all_arrays(self, arrayDir, pattern="*.config"):
         """Read and parse each of the ASCII files defining the antenna
         coordinates and telescope parameters (telescope, configuration, 
@@ -219,18 +237,21 @@ class observationManager:
             arrayFile = arrayFileLst[i]
             
             # Create an antArray object for each and store in a dictionary
-            ar = antArray(arrayFileLst[i])
-            if ar.telescope is not None:
-                key = ar.telescope + "_" + ar.config
-                value = {"row": i,
-                         "telescope": ar.telescope,
-                         "config": ar.config,
-                         "antArray": ar}
-                self.arrsAvailable[key] = value
+            self._load_one_array(arrayFileLst[i])
+            
+            # Create an antArray object for each and store in a dictionary
+#            ar = antArray(arrayFileLst[i])
+#            if ar.telescope is not None:
+#                key = ar.telescope + "_" + ar.config
+#                value = {"row": i,
+#                         "telescope": ar.telescope,
+#                         "config": ar.config,
+#                         "antArray": ar}
+#                self.arrsAvailable[key] = value
 
-                # Populate the telescope lookup tables
-                self.telescopeLatDict[ar.telescope] = ar.latitude_deg
-                self.telescopeDiamDict[ar.telescope] = ar.diameter_m
+#                # Populate the telescope lookup tables
+#                self.telescopeLatDict[ar.telescope] = ar.latitude_deg
+#                self.telescopeDiamDict[ar.telescope] = ar.diameter_m
             
         if self.verbose:
             print("Successfully loaded %d array configurations." 
