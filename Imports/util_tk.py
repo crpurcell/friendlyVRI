@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 11-May-2017 by C. Purcell                                         #
+# MODIFIED: 30-Jun-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -168,7 +168,13 @@ class ScrolledTreeTab(ttk.Frame):
             self.tree.column(col, minwidth=strWidth + self.strPad)
             
         # Populate the rows
-        rowIndx = 0
+        rowLst = []
+        for item in self.tree.get_children():
+            rowLst.append(int(self.tree.item(item, "text")))
+        if rowLst==[]:                    # Count rows from max filled val
+            rowIndx = 0
+        else:
+            rowIndx = max(rowLst) + 1
         for row in rows:
             row = [str(x) for x in row]   # Convert to plain strings
             self.tree.insert('', 'end', values=row, text=str(rowIndx))
