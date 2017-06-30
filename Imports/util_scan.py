@@ -3,14 +3,14 @@
 #                                                                             #
 # NAME:     util_scan.py                                                      #
 #                                                                             #
-# PURPOSE:  Routines for processing a model  array captured via webcam.       #
+# PURPOSE:  Routines for processing a model array captured via webcam.        #
 #                                                                             #
 # REQUIRED: Requires numpy, scipy, matplotlib and PIL/PILLOW                  #
 #                                                                             #
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 29-Jun-2017 by C. Purcell                                         #
+# MODIFIED: 30-Jun-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -50,8 +50,8 @@ from matplotlib.ticker import MaxNLocator
 from PIL import Image
 
 
-def scan_to_coords(imgName, scale_m=1000.0, eSize=13, threshold_sigma=5.0,
-                   crop=1024, ax=None):
+def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
+                      cropX=640, cropY=480, ax=None):
     
     # Open the image, convert to luminance greyscale and then a numpy array
     imgPIL = Image.open(imgName).convert("L")
@@ -59,18 +59,19 @@ def scan_to_coords(imgName, scale_m=1000.0, eSize=13, threshold_sigma=5.0,
 
     # Crop the image
     Ny, Nx = imgArr.shape
-    crop1 = min([crop, Nx, Ny])
-    dx = max(0, Nx - crop1)
-    dy = max(0, Ny - crop1)
+    cropX1 = min([cropX, Nx])
+    cropY1 = min([cropY, Ny])
+    dx = max(0, Nx - cropX1)
+    dy = max(0, Ny - cropY1)
     imgArr = imgArr[dy/2:Ny-dy/2, dx/2:Nx-dx/2]
     
     # Remove large-scale background using morphological opening
-    foot = generate_footprint(eSize)
+    foot = generate_footprint(int(eSize))
     imgErode = ndimage.grey_erosion(imgArr, size=(eSize, eSize), footprint=foot)
     imgOpen = ndimage.grey_dilation(imgErode, size=(eSize, eSize),
                                     footprint=foot)
     imgBgArr = imgArr - imgOpen
-    
+
     # Determine the finding threshold
     zMax = np.nanmax(imgBgArr)
     zMin = np.nanmin(imgBgArr)
@@ -78,54 +79,45 @@ def scan_to_coords(imgName, scale_m=1000.0, eSize=13, threshold_sigma=5.0,
     zMed = np.median(imgBgArr)
     threshold = zMed + rms * threshold_sigma
     
-    # Set everything below the threshold to zero:
+    # Convert to a binary mask
     imgMskArr = np.copy(imgBgArr)
     imgMskArr[imgBgArr<threshold] = 0
-
+    imgMskArr[imgMskArr>=threshold] = 1
+    
     # Find the objects and extract subimages
     imgLabeled, Nobjects = ndimage.label(imgMskArr)
     islands = ndimage.find_objects(imgLabeled)
 
-    # Find the centroids of the islands
-    pixScale_m = scale_m/float(crop1)
-    E_m = []
-    N_m = []
+    # Find the centroids of the islands in pixels
+    X_pix = []
+    Y_pix = []
     for island in islands:
-        dy, dx  = island
-        x, y = dx.start, dy.start
-        cx, cy = centroid(imgMskArr[island])
-        xCent_pix = x + cx
-        yCent_pix = y + cy
-        xCent_m = (xCent_pix - float(crop1)/2.0) * pixScale_m
-        yCent_m = (yCent_pix - float(crop1)/2.0) * pixScale_m
-        E_m.append(xCent_m)
-        N_m.append(yCent_m)
+        if np.sum(imgMskArr[island]) > minPix:
+            dy, dx  = island
+            x, y = dx.start, dy.start
+            cx, cy = centroid(imgMskArr[island])
+            X_pix.append(x + cx)
+            Y_pix.append(y + cy)
 
-    # Plot the positions of the antennae
+    # Plot the detected antenna positions
     if not ax==None:
-        
+        ax.cla()
         ax.imshow(imgBgArr, interpolation="nearest", cmap="gray_r",
-                  origin='lower', extent=[-scale_m/2000.0, scale_m/2000.0,
-                                          -scale_m/2000.0, scale_m/2000.0])
+                  origin='lower')
 
         # Annotate the detected antennae
-        for x, y in zip(E_m, N_m):
-            ax.plot(x/1000.0, y/1000.0, 'kx', ms=10, color="green",
-                    linewidth=5)
-            print "%.1f, %.1f" % (x, y)
+        for x, y in zip(X_pix, Y_pix):
+            ax.plot(x, y, 'kx', ms=19, color="magenta", markeredgewidth=3)
         
         # Format labels and legend
         ax.set_aspect('equal')
-        ax.set_xlim(-scale_m/2000.0, scale_m/2000.0)
-        ax.set_ylim(-scale_m/2000.0, scale_m/2000.0)
         ax.xaxis.set_major_locator(MaxNLocator(4))
         ax.yaxis.set_major_locator(MaxNLocator(4))
         ax.margins(0.02)
-        ax.set_xlabel("East Offset (km)")
-        ax.set_ylabel("North Offset (km)")
+        plt.setp(ax.get_yticklabels(), visible=False)
+        plt.setp(ax.get_xticklabels(), visible=False)
 
-        
-    return np.array(E_m), np.array(N_m), None
+    return np.array(X_pix), np.array(Y_pix), imgArr.shape
 
         
 #-----------------------------------------------------------------------------#
@@ -152,18 +144,21 @@ def generate_footprint(size):
 
 
 #-----------------------------------------------------------------------------#
-def write_arrayfile(fileName, E_m, N_m, telescope="MyTelescope_1",
-                    config="Config_1", latitude_deg=-20.0, diameter_m=22.0):
+def write_arrayfile(fileName, X_m, Y_m, Nx, Ny, scale_m, telescope,
+                    config, latitude_deg=-20.0, diameter_m=22.0):
 
+    # Convert from pixels to metres
+    pixScale_m = scale_m/float(Nx)
+    E_m = (X_m - Nx/2.0) * pixScale_m
+    N_m = (Y_m - Ny/2.0) * pixScale_m
+
+    # Write an array definition file
     FH = open(fileName, "w")
     FH.write("telescope = %s\n" % telescope)
     FH.write("config =  %s\n" % config)
     FH.write("latitude_deg = %f\n" % latitude_deg)
     FH.write("diameter_m = %f\n" % diameter_m)
-
-    
     for i in range(len(E_m)):
         FH.write("%f, %f\n" % (E_m[i], N_m[i]))
     FH.close()
 
-    
