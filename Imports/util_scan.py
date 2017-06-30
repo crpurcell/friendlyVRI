@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 30-Jun-2017 by C. Purcell                                         #
+# MODIFIED: 01-Jul-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -56,7 +56,8 @@ def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
     # Open the image, convert to luminance greyscale and then a numpy array
     imgPIL = Image.open(imgName).convert("L")
     imgArr = 256 - np.flipud(np.asarray(imgPIL))
-
+    #imgArr = np.rot90(imgArr, 2)
+    
     # Crop the image
     Ny, Nx = imgArr.shape
     cropX1 = min([cropX, Nx])
@@ -66,11 +67,15 @@ def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
     imgArr = imgArr[dy/2:Ny-dy/2, dx/2:Nx-dx/2]
     
     # Remove large-scale background using morphological opening
-    foot = generate_footprint(int(eSize))
-    imgErode = ndimage.grey_erosion(imgArr, size=(eSize, eSize), footprint=foot)
-    imgOpen = ndimage.grey_dilation(imgErode, size=(eSize, eSize),
-                                    footprint=foot)
-    imgBgArr = imgArr - imgOpen
+    if eSize>=3:
+        foot = generate_footprint(int(eSize))
+        imgErode = ndimage.grey_erosion(imgArr, size=(eSize, eSize),
+                                        footprint=foot)
+        imgOpen = ndimage.grey_dilation(imgErode, size=(eSize, eSize),
+                                        footprint=foot)
+        imgBgArr = imgArr - imgOpen
+    else:
+        imgBgArr = imgArr.copy()
 
     # Determine the finding threshold
     zMax = np.nanmax(imgBgArr)

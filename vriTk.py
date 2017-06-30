@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 15-May-2017 by C.Purcell                                          #
+# MODIFIED: 01-Jul-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -34,6 +34,10 @@
 #     _handler_add_button                                                     #
 #     _handler_clear_button                                                   #
 #     _handler_clear_all_button                                               #
+#                                                                             #
+# ArrayScanner       ... class defining the array scanning interface          #
+#     _handler_scan_button                                                    #
+#     _handler_save_button                                                    #
 #                                                                             #
 # ObsInputs          ... class exposing the remaining observation inputs      #
 #     _handler_browse_button                                                  #
@@ -804,7 +808,7 @@ class ArrayScanner(ttk.Frame):
         self.sigmaLab = ttk.Label(self.scanFrm, text="Threshold (sigma):")
         self.sigmaLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
         self.sigma = tk.StringVar()
-        self.sigma.set("5")
+        self.sigma.set("3")
         self.sigmaEnt = ttk.Entry(self.scanFrm, width=5,
                                   textvariable=self.sigma)
         self.sigmaEnt.grid(column=1, row=2, columnspan=2, padx=5, pady=5,
@@ -813,7 +817,7 @@ class ArrayScanner(ttk.Frame):
         self.minPixLab = ttk.Label(self.scanFrm, text="Min # Pixels:")
         self.minPixLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
         self.minPix = tk.StringVar()
-        self.minPix.set("100")
+        self.minPix.set("200")
         self.minPixEnt = ttk.Entry(self.scanFrm, width=5,
                                    textvariable=self.minPix)
         self.minPixEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
@@ -833,15 +837,15 @@ class ArrayScanner(ttk.Frame):
         self.myScopeLab = ttk.Label(self.arrFrm, text="Telescope Name:")
         self.myScopeLab.grid(column=0, row=0, padx=5, pady=5, sticky="E")
         self.myScope = tk.StringVar()
-        self.myScope.set("MyTelescope")
-        self.myScopeEnt = ttk.Entry(self.arrFrm, width=20,
+        self.myScope.set("Custom_1")
+        self.myScopeEnt = ttk.Entry(self.arrFrm, width=20, state="disabled",
                                     textvariable=self.myScope)
         self.myScopeEnt.grid(column=1, row=0, padx=5, pady=5, sticky="EW")
         # Array config
         self.myArrayLab = ttk.Label(self.arrFrm, text="Array Name:")
         self.myArrayLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
         self.myArray = tk.StringVar()
-        self.myArray.set("MyArray")
+        self.myArray.set("Array")
         self.myArrayEnt = ttk.Entry(self.arrFrm, width=10,
                                     textvariable=self.myArray)
         self.myArrayEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
@@ -876,7 +880,12 @@ class ArrayScanner(ttk.Frame):
                                   command=self._handler_save_button)
         self.saveBtn.configure(state="disabled")
         self.saveBtn.grid(column=0, row=5, columnspan=2, padx=5, pady=5,
-                          sticky="SEW" )        
+                          sticky="SEW" )
+        # Show control window
+        self.showBtn = ttk.Button(self.arrFrm, text = "Show Control Window",
+                                  width=20, command=self._show_control_window)
+        self.showBtn.grid(column=0, row=6,  columnspan=3, padx=5, pady=5,
+                          sticky="SEW")
         self.arrFrm.columnconfigure(0, weight=1)
         self.arrFrm.rowconfigure(5, weight=1)
 
@@ -924,7 +933,7 @@ class ArrayScanner(ttk.Frame):
                 self.saveBtn.configure(state="enabled")
             else:
                 self.saveBtn.configure(state="disabled")
-            
+    
     def _handler_save_button(self):
         
         # Write a temporary array definition file
@@ -939,8 +948,18 @@ class ArrayScanner(ttk.Frame):
                         config=self.myArray.get(),
                         latitude_deg=float(self.myLat.get()),
                         diameter_m=float(self.myAntDiam.get()))
+
+        # Increment the number of the telescope
+        pre, i = self.myScope.get().rsplit("_")
+        self.myScope.set(pre + "_" + str(int(i)+1))
         self.event_generate("<<array_scanned>>")
 
+    def _show_control_window(self):
+        """Set focus back to the main control window."""
+        
+        root.focus_force()
+        root.lift()
+        
             
 #-----------------------------------------------------------------------------#
 class ObsInputs(ttk.Frame):
