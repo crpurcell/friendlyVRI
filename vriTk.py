@@ -905,17 +905,17 @@ class ArrayScanner(ttk.Frame):
 
         # Capture an image of the array via webcam 2
         cam = cv2.VideoCapture()
-        cam.open(0) # DEBUG - changed to 0
+        cam.open(1)
         cam.set(3, 640)
         cam.set(4, 480)
         for i in range(10):
             success, img = cam.read()
         cam.release()
         if success:
-            cv2.imwrite("arrays/scan1.png", img)
+            cv2.imwrite("arrays/scan.png", img)
 
             # Detect the islands in the image
-            imgName = "arrays/scan1.png"
+            imgName = "arrays/scan.png"
             self.X_m, self.Y_m, self.shape = \
                 scan_to_pixcoords("arrays/scan.png",
                                   eSize=float(self.kernSize.get()),

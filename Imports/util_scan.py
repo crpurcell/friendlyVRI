@@ -49,7 +49,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 from PIL import Image
 
-
+#-----------------------------------------------------------------------------@
 def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
                       cropX=640, cropY=480, ax=None):
     
