@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 01-Jul-2017 by C.Purcell                                          #
+# MODIFIED: 15-Aug-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -773,6 +773,7 @@ class ArrayScanner(ttk.Frame):
         self.X_m = None
         self.Y_m = None
         self.shape = None
+        self.doFlat = None
         
         # Set the expansion properties
         self.columnconfigure(1, weight=1)
@@ -780,55 +781,74 @@ class ArrayScanner(ttk.Frame):
         self.rowconfigure(1, weight=1)
 
         # Scanner settings
-        self.scanFrm = ttk.Labelframe(self, text=" Scaner Settings ")
+        self.scanFrm = ttk.Labelframe(self, text=" Scanner Settings ")
         self.scanFrm.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        # Resolution
+        self.resLab = ttk.Label(self.scanFrm, text="Resolution:")
+        self.resLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.resX = tk.StringVar()
+        self.resY = tk.StringVar()
+        self.resX.set("1280")
+        self.resY.set("800")
+        self.resXEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.resX)
+        self.resXEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        self.resYEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.resY)
+        self.resYEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
+        # Crop size
+        self.cropLab = ttk.Label(self.scanFrm, text="Crop Size:")
+        self.cropLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
+        self.cropX = tk.StringVar()
+        self.cropY = tk.StringVar()
+        self.cropX.set("30")
+        self.cropY.set("30")
+        self.cropXEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.cropX)
+        self.cropXEnt.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
+        self.cropYEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.cropY)
+        self.cropYEnt.grid(column=2, row=2, padx=5, pady=5, sticky="EW")
         # Smoothing kernel
         self.kernLab = ttk.Label(self.scanFrm, text="Kernel Size:")
-        self.kernLab.grid(column=0, row=0, padx=5, pady=5, sticky="E")
+        self.kernLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
         self.kernSize = tk.StringVar()
         self.kernSize.set("41")
         self.kernEnt = ttk.Entry(self.scanFrm, width=5,
                                  textvariable=self.kernSize)
-        self.kernEnt.grid(column=1, row=0, columnspan=2, padx=5, pady=5,
+        self.kernEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
                           sticky="EW")
-        # Crop size
-        self.cropLab = ttk.Label(self.scanFrm, text="Crop Size:")
-        self.cropLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
-        self.cropX = tk.StringVar()
-        self.cropY = tk.StringVar()
-        self.cropX.set("500")
-        self.cropY.set("400")
-        self.cropXEnt = ttk.Entry(self.scanFrm, width=5,
-                                  textvariable=self.cropX)
-        self.cropXEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
-        self.cropYEnt = ttk.Entry(self.scanFrm, width=5,
-                                  textvariable=self.cropY)
-        self.cropYEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
         # Dettection threshold
         self.sigmaLab = ttk.Label(self.scanFrm, text="Threshold (sigma):")
-        self.sigmaLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
+        self.sigmaLab.grid(column=0, row=4, padx=5, pady=5, sticky="E")
         self.sigma = tk.StringVar()
         self.sigma.set("3")
         self.sigmaEnt = ttk.Entry(self.scanFrm, width=5,
                                   textvariable=self.sigma)
-        self.sigmaEnt.grid(column=1, row=2, columnspan=2, padx=5, pady=5,
+        self.sigmaEnt.grid(column=1, row=4, columnspan=2, padx=5, pady=5,
                           sticky="EW")
         # Min number pixels in island
         self.minPixLab = ttk.Label(self.scanFrm, text="Min # Pixels:")
-        self.minPixLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
+        self.minPixLab.grid(column=0, row=5, padx=5, pady=5, sticky="E")
         self.minPix = tk.StringVar()
         self.minPix.set("200")
         self.minPixEnt = ttk.Entry(self.scanFrm, width=5,
                                    textvariable=self.minPix)
-        self.minPixEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
+        self.minPixEnt.grid(column=1, row=5, columnspan=2, padx=5, pady=5,
                           sticky="EW")
+        # Flat Field button
+        self.flatBtn = ttk.Button(self.scanFrm, text="Flat Field", width=20,
+                                  command=self._handler_flat_button)
+#        self.flatBtn.grid(column=0, row=6, columnspan=3, padx=5, pady=5,
+#                          sticky="SEW" )
+        
         # Scan button
         self.scanBtn = ttk.Button(self.scanFrm, text="Scan Array", width=20,
                                   command=self._handler_scan_button)
-        self.scanBtn.grid(column=0, row=4, columnspan=3, padx=5, pady=5,
+        self.scanBtn.grid(column=0, row=7, columnspan=3, padx=5, pady=5,
                           sticky="SEW" )
         self.scanFrm.columnconfigure(0, weight=1)
-        self.scanFrm.rowconfigure(4, weight=1)
+        self.scanFrm.rowconfigure(6, weight=1)
 
         # Array settings
         self.arrFrm = ttk.Labelframe(self, text=" Custom Array Settings ")
@@ -906,23 +926,33 @@ class ArrayScanner(ttk.Frame):
         # Capture an image of the array via webcam 2
         cam = cv2.VideoCapture()
         cam.open(1)
-        cam.set(3, 640)
-        cam.set(4, 480)
+        cam.set(3, int(self.resX.get()))
+        cam.set(4, int(self.resX.get()))
         for i in range(10):
             success, img = cam.read()
         cam.release()
         if success:
-            cv2.imwrite("arrays/scan.png", img)
 
+            # Resize the image to make it easier to manage
+            img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+
+            # Save scan to a png file
+            cv2.imwrite("arrays/scan.png", img)
+            
             # Detect the islands in the image
             imgName = "arrays/scan.png"
+            if self.doFlat:
+                flatImgName = "arrays/scan.png"
+            else:
+                flatImgName = None
             self.X_m, self.Y_m, self.shape = \
                 scan_to_pixcoords("arrays/scan.png",
                                   eSize=float(self.kernSize.get()),
                                   threshold_sigma=float(self.sigma.get()),
                                   minPix=int(self.minPix.get()),
-                                  cropX=int(self.cropX.get()),
-                                  cropY=int(self.cropY.get()),
+                                  cropX=img.shape[1]-int(self.cropX.get()),
+                                  cropY=img.shape[0]-int(self.cropY.get()),
+                                  flatImgName = flatImgName, 
                                   ax=self.ax)
 
             # Show the scanned figure and allow saving
@@ -934,6 +964,24 @@ class ArrayScanner(ttk.Frame):
             else:
                 self.saveBtn.configure(state="disabled")
     
+    def _handler_flat_button(self):
+
+        # Capture an image of the array via webcam 2
+        cam = cv2.VideoCapture()
+        cam.open(1)
+        cam.set(3, int(self.resX.get()))
+        cam.set(4, int(self.resX.get()))
+        for i in range(10):
+            success, img = cam.read()
+        cam.release()
+        if success:
+            # Resize the image to make it easier to manage
+            img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+
+            # Save scan to a png file
+            cv2.imwrite("arrays/flat.png", img)
+            self.doFlat = True
+            
     def _handler_save_button(self):
         
         # Write a temporary array definition file

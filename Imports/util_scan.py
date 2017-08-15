@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 01-Jul-2017 by C. Purcell                                         #
+# MODIFIED: 15-Aug-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -51,13 +51,19 @@ from PIL import Image
 
 #-----------------------------------------------------------------------------@
 def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
-                      cropX=640, cropY=480, ax=None):
+                      cropX=640, cropY=480, flatImgName=None, ax=None):
     
     # Open the image, convert to luminance greyscale and then a numpy array
     imgPIL = Image.open(imgName).convert("L")
-    imgArr = 256 - np.flipud(np.asarray(imgPIL))
-    #imgArr = np.rot90(imgArr, 2)
-    
+    #imgArr = 256 - np.flipud(np.asarray(imgPIL))
+    imgArr = 256 - np.asarray(imgPIL)
+
+    # Subtract the flat image
+    if flatImgName:
+        flatPIL = Image.open(flatImgName).convert("L")
+        flatArr = 256 - np.flipud(np.asarray(flatPIL))
+        imgArr =  imgArr - flatArr
+        
     # Crop the image
     Ny, Nx = imgArr.shape
     cropX1 = min([cropX, Nx])
