@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 15-Aug-2017 by C.Purcell                                          #
+# MODIFIED: 18-Aug-2017 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -801,8 +801,8 @@ class ArrayScanner(ttk.Frame):
         self.cropLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
         self.cropX = tk.StringVar()
         self.cropY = tk.StringVar()
-        self.cropX.set("30")
-        self.cropY.set("30")
+        self.cropX.set("40")
+        self.cropY.set("40")
         self.cropXEnt = ttk.Entry(self.scanFrm, width=5,
                                   textvariable=self.cropX)
         self.cropXEnt.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
@@ -813,7 +813,7 @@ class ArrayScanner(ttk.Frame):
         self.kernLab = ttk.Label(self.scanFrm, text="Kernel Size:")
         self.kernLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
         self.kernSize = tk.StringVar()
-        self.kernSize.set("41")
+        self.kernSize.set("51")
         self.kernEnt = ttk.Entry(self.scanFrm, width=5,
                                  textvariable=self.kernSize)
         self.kernEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
@@ -831,7 +831,7 @@ class ArrayScanner(ttk.Frame):
         self.minPixLab = ttk.Label(self.scanFrm, text="Min # Pixels:")
         self.minPixLab.grid(column=0, row=5, padx=5, pady=5, sticky="E")
         self.minPix = tk.StringVar()
-        self.minPix.set("200")
+        self.minPix.set("100")
         self.minPixEnt = ttk.Entry(self.scanFrm, width=5,
                                    textvariable=self.minPix)
         self.minPixEnt.grid(column=1, row=5, columnspan=2, padx=5, pady=5,
@@ -1007,8 +1007,55 @@ class ArrayScanner(ttk.Frame):
         
         root.focus_force()
         root.lift()
+
         
-            
+#-----------------------------------------------------------------------------#
+class EmailPoster(ttk.Frame):
+    """Interface to show a poster image and email it to the user."""
+
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
+
+        # Create the blank figure canvas and grid its tk canvas
+        self.fig = Figure(figsize=(13.0, 8.0), facecolor="black")
+        self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas = self.figCanvas.get_tk_widget()
+        self.canvas.configure(highlightthickness=0)
+        self.canvas.configure(background=bgColour)
+        self.canvas.grid(column=0, row=0, columnspan=4, padx=0, pady=0,
+                         sticky="NSEW")
+        
+        # Add the email panel
+        self.emailLab = ttk.Label(self, text="Enter E-mail Address:")
+        self.emailLab.grid(column=0, row=1, padx=5, pady=5, sticky="W")
+        self.email = tk.StringVar()
+        self.emailEnt= ttk.Entry(self, width=100, textvariable=self.email)
+        self.emailEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        self.emailBtn = ttk.Button(self, text="Send Email", width=20,
+                                   command=self._handler_email_button)
+        self.emailBtn.grid(column=2, row=1, padx=5, pady=5,
+                          sticky="E" )
+        self.closeBtn = ttk.Button(self, text = "Close", width=20,
+                                   command=self._close)
+        self.closeBtn.grid(column=3, row=1, padx=5, pady=5, sticky="E")
+
+        # Set the expansion properties
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+        
+    def _handler_email_button(self):
+        print("EMAIL!")
+        pass
+
+    def _close(self):
+        """Set focus back to the main control window."""
+        self.parent.destroy()
+        root.focus_force()
+        root.lift()
+        
 #-----------------------------------------------------------------------------#
 class ObsInputs(ttk.Frame):
     """Input settings for the observation (Model image, Declination of source,
@@ -1559,7 +1606,7 @@ class PlotFrame(ttk.Frame):
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
         self.canvas.configure(background=bgColour)
-        self.canvas.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
+        self.canvas.grid(column=0, row=0, columnspan=3, padx=0, pady=0,
                          sticky="NSEW")
         self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
@@ -1582,16 +1629,21 @@ class PlotFrame(ttk.Frame):
         self.infoPanel = InformationPanel(self)
         self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=2,
                             padx=5, pady=5, sticky="W")
+
+        # Add the email poster button
+        self.emailBtn =  ttk.Button(self, text = "E-mail Poster", width=20,
+                                    command=self._show_email_win)
+        self.emailBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
         
         # Add the matplotlib toolbar
         self.tbarFrm = ttk.Frame(self)
         self.toolbar = MPLnavToolbar(self.figCanvas, self.tbarFrm)
-        self.tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
+        self.tbarFrm.grid(column=2, row=1, padx=5, pady=5, sticky="NE")
 
         # Add the show control window Button
         self.showBtn = ttk.Button(self, text = "Show Control Window", width=20,
                                   command=self._show_control_window)
-        self.showBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
+        self.showBtn.grid(column=2, row=2, padx=5, pady=5, sticky="SE")
 
         # Show the plot
         self.show()
@@ -1602,6 +1654,32 @@ class PlotFrame(ttk.Frame):
         root.focus_force()
         root.lift()
 
+    def _show_email_win(self):
+        exists=0
+        try:
+            exists = self.emailWin.winfo_exists()
+        except Exception:
+            pass
+        if exists:
+            self.emailWin.focus_force()
+            self.emailWin.lift()
+        else:
+            self.emailWin = tk.Toplevel(self, background="black")
+            self.emailWin.title("Friendly VRI: Email Poster Window")
+            self.emailWin.resizable(True, True)
+            self.emailWin.columnconfigure(0, weight=1)
+            self.emailWin.rowconfigure(0, weight=1)
+            self.ePoster = EmailPoster(self.emailWin)
+            self.ePoster.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
+
+        # Create the poster
+        #import pickle
+        #p = pickle.dumps(self.axDict["modelImg"][0])
+        ax1 = self.axDict["modelImg"][0]
+        #self.ePoster.fig.add_subplot(111)
+        self.ePoster.fig.axes.append(self.axDict["modelImg"][0])
+        self.ePoster.figCanvas.show()
+        
     def plot_image(self, axName, imgArr=None, title="", pRng=None):
         """Plot an image with a scalebar (TBD)."""
         
