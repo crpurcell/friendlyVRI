@@ -3,12 +3,17 @@
 DEVELOPMENT TO-DO LIST:
 
 * Calculations and logic:
+  - Robust weighting calculation
+  - Regrid input image and sample 4 pixels across a synthesised beam.
+  - Estimate primary beam size
+
+* Interface
+  - Array editor interface: build your own array
   - Enable/disable key buttons while processing.
   - Update size scales on information panel when changing freq, pix-scale.
-  - robust weighting calculation
   - Convert Information panel in plotting window to table.
   - Array selection table: <Ret> should choose (currently mouse only).
-
+  
 * Plotting
  - legend for uv-coverage plot.
  - scalebar on images.
