@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 16-May-2018 by C.Purcell                                          #
+# MODIFIED: 18-May-2018 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -31,12 +31,21 @@
 #     _on_show_results                                                        #
 #                                                                             #
 # ModelSelector      ... class defining the model selection interface         #
-#                                                                             #
+#     _handler_image_selected                                                 #
+#     _handler_capture_photo                                                  #
+#     _round_pixscale                                                         #
+#     _round_decscale                                                         #
 #                                                                             #
 # ArraySelector      ... class defining the array selection interface         #
 #     _handler_add_button                                                     #
 #     _handler_clear_button                                                   #
 #     _handler_clear_all_button                                               #
+#                                                                             #
+# ArrayScanner       ... class defining the array scanning interface          #
+#     _handler_scan_button                                                    #
+#     _handler_flat_button                                                    #
+#     _handler_save_button                                                    #
+#     _show_control_window                                                    #
 #                                                                             #
 # ObsInputs          ... class exposing the remaining observation inputs      #
 #     _handler_browse_button                                                  #
@@ -49,6 +58,12 @@
 #     set_state                                                               #
 #                                                                             #
 # InformationPanel   ... class showing derived properties of observation      #
+#     update                                                                  #
+#                                                                             #
+# InformationPanelGraphic ...class showing derived properties as graphic      #
+#     _draw_block                                                             #
+#     _world2canvas                                                           #
+#     _set_scale                                                              #
 #     update                                                                  #
 #                                                                             #
 # PlotFrame          ... class defining the plotting window                   #
@@ -250,7 +265,8 @@ class App(ttk.Frame):
         tabFrm.columnconfigure(0, weight=1)
         self.arrayScanner = ArrayScanner(tabFrm, bgColour=self.bgColour)
         self.arrayScanner.grid(column=0, row=0, sticky="NSEW")
-        self.nb.add(tabFrm, text="    2) Create New Telescope Array    ", padding=5)
+        self.nb.add(tabFrm, text="    2) Create New Telescope Array    ",
+                    padding=5)
         
     def _add_array_tab(self):
         tabFrm = tk.Frame(self.nb)
@@ -273,8 +289,9 @@ class App(ttk.Frame):
         tabFrm = tk.Frame(self.nb)
         tabFrm.rowconfigure(0, weight=1)
         tabFrm.columnconfigure(0, weight=1)
-        self.statFrm = StatusFrame(tabFrm, bgColour=self.bgColour, boxWidth=22,
-                                   gapWidth=155)
+        #self.statFrm = StatusFrame(tabFrm, bgColour=self.bgColour, boxWidth=22,
+        #                           gapWidth=155)
+        self.statFrm = PlotFrame(tabFrm, bgColour=self.bgColour)
         self.statFrm.grid(column=0, row=0, sticky="NSEW")
         self.nb.add(tabFrm,  text="    4) View Results    ", padding=5)
         
@@ -923,7 +940,7 @@ class ArrayScanner(ttk.Frame):
                                  textvariable=self.kernSize)
         self.kernEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
                           sticky="EW")
-        # Dettection threshold
+        # Detection threshold
         self.sigmaLab = ttk.Label(self.scanFrm, text="Threshold (sigma):")
         self.sigmaLab.grid(column=0, row=4, padx=5, pady=5, sticky="E")
         self.sigma = tk.StringVar()
@@ -1118,84 +1135,88 @@ class ObsInputs(ttk.Frame):
     """Input settings for the observation (Model image, Declination of source,
     observing frequency, Robust weighting factor."""
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
 
         # Set the expansion properties
-        self.columnconfigure(8, weight=1)
-        self.columnconfigure(11, weight=1)
+        self.columnconfigure(2, weight=1)
+        self.columnconfigure(5, weight=1)
+        self.rowconfigure(0, weight=1)
+
+        # Figure showing the elevation of the source
+        self.elFig = Figure(figsize=(8.0, 7.0), facecolor=bgColour)
+        self.figCanvas1 = FigureCanvasTkAgg(self.elFig, master=self)
+        self.elCanvas = self.figCanvas1.get_tk_widget()
+        self.elCanvas.configure(highlightthickness=0)
+        self.elCanvas.configure(background=bgColour)
+        self.elCanvas.grid(column=0, row=0, columnspan=3, rowspan=1,
+                           padx=0, pady=0, sticky="NSEW")
+        self.elAx = self.elFig.add_subplot(111)
+        plt.setp(self.elAx.get_yticklabels(), visible=False)
+        plt.setp(self.elAx.get_xticklabels(), visible=False)
         
-        # Plot elevation
-        self.plotElBtn = ttk.Button(self, text="Plot Elevation", width=20,
-                    command=lambda: self.event_generate("<<plot_elevation>>"))
-        self.plotElBtn.grid(column=1, row=0, columnspan=2, padx=5, pady=5,
-                            sticky="EW" )
+        # Source Declination slider
+        self.decSrcLab = ttk.Label(self,
+                                   text="Source Declination (degrees):")
+        self.decSrcLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.dec_deg = tk.DoubleVar()
+        self.dec_deg.set(-20.0)
+        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=5,
+                                   anchor="e")
+        self.decValLab.grid(column=1, row=1, padx=5, pady=5, sticky="E")
+        self.decScale = ttk.Scale(self, from_=-90, to=90, variable=self.dec_deg,
+                                  command=self._round_decscale)
+        self.decScale.grid(column=0, row=2, columnspan=3, padx=25, pady=5,
+                           sticky="EW")
+        self.decScale.bind('<Any-ButtonRelease-1>',
+                           lambda e: self.event_generate("<<obsparm_changed>>"))
         
-        # Observing frequency
+        # Figure showing a histogram of the baseline length
+        self.blFig = Figure(figsize=(8.0, 7.0), facecolor=bgColour)
+        self.figCanvas2 = FigureCanvasTkAgg(self.blFig, master=self)
+        self.blCanvas = self.figCanvas2.get_tk_widget()
+        self.blCanvas.configure(highlightthickness=0)
+        self.blCanvas.configure(background=bgColour)
+        self.blCanvas.grid(column=3, row=0, columnspan=3, rowspan=1,
+                           padx=0, pady=0, sticky="NSEW")
+        self.blAx = self.blFig.add_subplot(111)
+        plt.setp(self.blAx.get_yticklabels(), visible=False)
+        plt.setp(self.blAx.get_xticklabels(), visible=False)
+        
+        # Source Declination slider
         self.freqLab = ttk.Label(self, text="Observing Frequency (MHz):")
-        self.freqLab.grid(column=12, row=0, padx=5, pady=5, sticky="E")
+        self.freqLab.grid(column=3, row=1, padx=5, pady=5, sticky="E")
         self.freq_MHz = tk.StringVar()
-        self.freq_MHz.trace("w", lambda dummy1, dummy2, dummy3:
-                            self.event_generate("<<obsparm_changed>>"))
-        self.freq_MHz.set(1420.0)
-        self.freqEnt = ttk.Entry(self, width=10, textvariable=self.freq_MHz)
-        self.freqEnt.grid(column=13, row=0, padx=5, pady=5, sticky="EW")
-        
-        # Weighting factor
-        self.robustLab = ttk.Label(self, state="readonly" ,
-                                   text="Robust Weighting Factor:")
-        self.robustLab.grid(column=12, row=1, padx=(15,5), pady=5, sticky="E")
-        #robustLst = ["None", "-2.0", "-1.5", "-1.0", "-0.5", "0.0",
-        #             "0.5", "1.0", "1.5", "2.0"]
-        robustLst = ["None"]
-        self.robust = tk.StringVar()
-        self.robust.trace("w", lambda dummy1, dummy2, dummy3:
-                          self.event_generate("<<obsparm_changed>>"))
-        self.robustComb = ttk.Combobox(self, state="readonly",
-                                       textvariable=self.robust,
-                                       values=robustLst, width=15)
-        self.robustComb.current(0)
-        self.robustComb.grid(column=13, row=1, padx=5, pady=5, sticky="EW")
+        self.freq_MHz.set(1420)
+        self.freqValLab = ttk.Label(self, textvariable=self.freq_MHz, width=15,
+                                   anchor="e")
+        self.freqValLab.grid(column=4, row=1, padx=25, pady=5, sticky="E")
+        self.freqScale = ttk.Scale(self, from_=500, to=110000,
+                                   variable=self.freq_MHz,
+                                   command=self._round_freqscale)
+        self.freqScale.grid(column=3, row=2, columnspan=3, padx=5, pady=5,
+                           sticky="EW")
+        self.freqScale.bind('<Any-ButtonRelease-1>',
+                           lambda e: self.event_generate("<<obsparm_changed>>"))
 
         # Add the controls and status icons
         self.statFrm = StatusFrame(self, boxWidth=22, gapWidth=155)
-        self.statFrm .grid(column=0, row=2, padx=5, pady=5, sticky="EW")
-    def _handler_browse_button(self):
-        """Open the file selection dialog and set the session dir."""
+        self.statFrm .grid(column=0, row=4, columnspan=6, padx=5, pady=5,
+                           sticky="EW")
         
-        modelPath = tkFileDialog.askopenfilename(parent=self,
-                            initialdir="models", title="Choose a model file")
-        if not len(modelPath)==0:
-            if os.path.exists(modelPath):
-                s = os.path.split(modelPath)
-                if len(s)==2:
-                    self.modelFile.set(s[-1])
-                    self.modelPath = modelPath
-                    self.event_generate("<<load_model_image>>")
         
-    def _handler_capture_photo(self):
-        """Capture a photo using the webcam."""
-
-        try:
-            cam = cv2.VideoCapture()
-            cam.open(0)
-            for i in range(10):
-                success, img = cam.read()
-            cam.release()
-            if success:
-                cv2.imwrite("models/webcam.png", img)
-                self.modelFile.set("webcam.png")
-                self.modelPath = "models/webcam.png"
-                self.event_generate("<<load_model_image>>")
-        except Exception:
-            pass
+    def _round_freqscale(self, e=None):
+        value = self.freqScale.get()
+        if int(value) != value:
+            self.freqScale.set(round(value))
         
-    def _round_scale(self, e=None):
+    def _round_decscale(self, e=None):
         value = self.decScale.get()
         if int(value) != value:
             self.decScale.set(round(value))
-        
         
 #-----------------------------------------------------------------------------#
 class StatusFrame(ttk.Frame):
