@@ -26,6 +26,7 @@
 #     _on_plot_modFFT                                                         #
 #     _on_plot_uvcov                                                          #
 #     _on_plot_elevation                                                      #
+#     _on_plot_scalehist                                                      #
 #     _on_load_model                                                          #
 #     _on_do_observation                                                      #
 #     _on_show_results                                                        #
@@ -47,7 +48,7 @@
 #     _handler_save_button                                                    #
 #     _show_control_window                                                    #
 #                                                                             #
-# ObsInputs          ... class exposing the remaining observation inputs      #
+# ObsPanel          ... class exposing final observation inputs and plots     #
 #     _handler_browse_button                                                  #
 #     _handler_capture_photo                                                  #
 #     _round_scale                                                            #
@@ -179,15 +180,15 @@ class App(ttk.Frame):
         self._add_results_tab()
         
         # Create the display window
-        self.dispWin = tk.Toplevel(self)
-        self.dispWin.title("Friendly VRI: Plot Window")
-        self.dispWin.protocol("WM_DELETE_WINDOW", self._applicationExit)
-        self.dispWin.columnconfigure(0, weight=1)
-        self.dispWin.rowconfigure(0, weight=1)
+#        self.dispWin = tk.Toplevel(self)
+#        self.dispWin.title("Friendly VRI: Plot Window")
+#        self.dispWin.protocol("WM_DELETE_WINDOW", self._applicationExit)
+#        self.dispWin.columnconfigure(0, weight=1)
+#        self.dispWin.rowconfigure(0, weight=1)
 
         # Draw the display interface
-        self.pltFrm = PlotFrame(self.dispWin, bgColour=self.bgColour)
-        self.pltFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
+#        self.pltFrm = PlotFrame(self.dispWin, bgColour=self.bgColour)
+#        self.pltFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
 
         # Set focus to the main window and bring to the fore
         self.focus_force()
@@ -201,7 +202,7 @@ class App(ttk.Frame):
             self.testWin.resizable(True, True)
             self.testWin.columnconfigure(0, weight=1)
             self.testWin.rowconfigure(0, weight=1)
-            self.a = ObsInputs(self.testWin)
+            self.a = ObsPanel(self.testWin)
             self.a.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
             
         # Load the back-end and populate the array configuration list
@@ -224,8 +225,8 @@ class App(ttk.Frame):
                   lambda event : self._on_select_config(event))
         self.parent.bind("<<selection_changed>>",
                   lambda event : self._on_sel_change(event))
-        self.parent.bind("<<obsparm_changed>>",
-                  lambda event : self._on_obsparm_change(event))    
+#        self.parent.bind("<<obsparm_changed>>",
+#                  lambda event : self._on_obsparm_change(event))    
         self.parent.bind("<<pixscale_changed>>",
                   lambda event : self._on_pixscale_change(event))
         self.parent.bind("<<plot_modFFT>>",
@@ -234,6 +235,8 @@ class App(ttk.Frame):
                   lambda event : self._on_plot_uvcov(event))
         self.parent.bind("<<plot_elevation>>",
                   lambda event : self._on_plot_elevation(event))
+        self.parent.bind("<<plot_scalehist>>",
+                  lambda event : self._on_plot_scalehist(event))
         self.parent.bind("<<do_observation>>",
                   lambda event : self._on_do_observation(event))
         self.parent.bind("<<show_results>>",
@@ -246,10 +249,10 @@ class App(ttk.Frame):
         self.parent.minsize(self.parent.winfo_width(),
                             self.parent.winfo_height())
         #self.parent.resizable(False, False)
-        self.dispWin.update()
-        self.dispWin.minsize(self.dispWin.winfo_width(),
-                             self.dispWin.winfo_height())
-        self.dispWin.resizable(True, True)        
+#        self.dispWin.update()
+#        self.dispWin.minsize(self.dispWin.winfo_width(),
+#                             self.dispWin.winfo_height())
+#        self.dispWin.resizable(True, True)        
 
     def _add_model_tab(self):
         tabFrm = tk.Frame(self.nb)
@@ -281,7 +284,7 @@ class App(ttk.Frame):
         tabFrm = tk.Frame(self.nb)
         tabFrm.rowconfigure(0, weight=1)
         tabFrm.columnconfigure(0, weight=1)
-        self.inputs = ObsInputs(tabFrm)
+        self.inputs = ObsPanel(tabFrm)
         self.inputs.grid(column=0, row=0, sticky="NSEW")
         self.nb.add(tabFrm, text="    3) Do Observations    ", padding=5)
 
@@ -289,10 +292,8 @@ class App(ttk.Frame):
         tabFrm = tk.Frame(self.nb)
         tabFrm.rowconfigure(0, weight=1)
         tabFrm.columnconfigure(0, weight=1)
-        #self.statFrm = StatusFrame(tabFrm, bgColour=self.bgColour, boxWidth=22,
-        #                           gapWidth=155)
-        self.statFrm = PlotFrame(tabFrm, bgColour=self.bgColour)
-        self.statFrm.grid(column=0, row=0, sticky="NSEW")
+        self.pltFrm = PlotFrame(tabFrm, bgColour=self.bgColour)
+        self.pltFrm.grid(column=0, row=0, sticky="NSEW")
         self.nb.add(tabFrm,  text="    4) View Results    ", padding=5)
         
     def _applicationExit(self):
@@ -346,14 +347,14 @@ class App(ttk.Frame):
 
         # Query the status and set the indicators
         stateDict = self.obsManager.get_status()
-        self.statFrm.set_state_by_dict(stateDict)
+        self.inputs.statFrm.set_state_by_dict(stateDict)
         
         # Clear the plots based on the status
         self.pltFrm.clear_by_state(stateDict)
         
         # Query the scales and update the information panel
-        parmDict = self.obsManager.get_scales()
-        self.pltFrm.infoPanel.update(parmDict)
+#        parmDict = self.obsManager.get_scales()
+#        self.pltFrm.infoPanel.update(parmDict)
 
         # Force an update of the GUI
         root.update()
@@ -386,10 +387,10 @@ class App(ttk.Frame):
     def _on_sel_change(self, event=None):
         """When the arrays selected change in the GUI, refresh the observation
         parameters in the observation manager."""
-
+        print("SEL", self.inputs.freq_MHz.get())
         # Reset the common parameters
         self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
-                                      self.modelSelector.dec_deg.get())
+                                      self.inputs.dec_deg.get())
 
         # Reset the array and hour-angle selections
         self.obsManager.clear_all_selections()
@@ -399,7 +400,11 @@ class App(ttk.Frame):
             haEnd = float(selection[3])
             sampRate = float(selection[4])
             self.obsManager.select_array(key, haStart, haEnd, sampRate)
-        
+
+        # Update the elevation and scale plots
+        self.event_generate("<<plot_elevation>>")
+        self.event_generate("<<plot_scalehist>>")
+            
         # Update the status
         self._update_status()
 
@@ -410,7 +415,7 @@ class App(ttk.Frame):
         # Reset the common parameters
         try:
             self.obsManager.set_obs_parms(float(self.inputs.freq_MHz.get()),
-                                          float(self.modelSelector.dec_deg.get()))
+                                    float(self.inputs.dec_deg.get()))
         except Exception:
             pass
 
@@ -478,37 +483,43 @@ class App(ttk.Frame):
         """Create a plot showing the elevation of the source as seen from 
         the currently selected telescopes."""
         
-        colLst=["r", "b", "g", "m", "c", "y", "k"]
-        
         # Query the selected array configurations
         selTab = self.obsManager.get_selected_arrays()
+        telescopeLst = []
         if not selTab is None:
             telescopeLst = set(selTab["telescope"])
-        else:
-            return
 
-        # Plot each of the elevation curves
-        fig = Figure(figsize=(7.5, 6), facecolor=bgColour)
-        ax = fig.add_subplot(111)
+        # Calculate each of the elevation curves
+        elCurveDict = {}
         for i, e in enumerate(telescopeLst):
+            label = e.decode("utf-8")
             haArr_hr, elArr_deg = self.obsManager.calc_elevation_curve(e)
-            ax.plot(haArr_hr, elArr_deg, color=colLst[i%len(colLst)],
-                    label=e.decode("utf-8"))
+            elCurveDict[label] = [haArr_hr, elArr_deg]
 
-        # Format labels and legend
-        ax.set_xlim(-12.0, 12.0)
-        ax.set_ylim(0.0, 90.0)
-        ax.set_xlabel("Hour Angle (hours)")
-        ax.set_ylabel("Elevation (degrees)")
-        ax.margins(0.02)
-        leg = ax.legend(shadow=False)
-        for t in leg.get_texts():
-            t.set_fontsize('small')
+        # Call the plotting function. Will initialise the axes if blank.
+        self.inputs.plot_elevation(elCurveDict)
 
-        # Show the figure
-        if len(telescopeLst)>0:
-            self._show_lone_figure(fig, title="Elevation Plot")
+    def _on_plot_scalehist(self, event=None):
+        """Create a plot showing a histogram of the baseline lengths and
+        compare to the power in the source model."""
+        print(self.obsManager.lambda_m)
+        # Query the selected array configurations
+        selTab = self.obsManager.get_selected_arrays()
+        configLst = []
+        if not  selTab is None:
+            configLst = set(selTab["key"])
 
+        # Get the baseline lengths
+        lBaseArr_lam = []
+        for k in configLst:
+            lBase_m = self.obsManager.get_baseline_lengths(key=k)
+            lBase_lam = lBase_m / self.obsManager.lambda_m
+            lBaseArr_lam = np.append(lBaseArr_lam, lBase_lam)
+        lBaseArr_lam = np.unique(lBaseArr_lam)
+        
+        # Call the plotting function. Will initialise the axes if blank.
+        self.inputs.plot_scales(lBaseArr_lam)
+        
     def _on_load_model(self, event=None):
         """Load a model image into the observation manager"""
         
@@ -598,9 +609,9 @@ class App(ttk.Frame):
 
     def _on_show_results(self, event=None):
         """Raise the focus of the plotting window."""
-
-        self.dispWin.focus_force()
-        self.dispWin.lift()
+        pass
+#        self.dispWin.focus_force()
+#        self.dispWin.lift()
         
     def _on_scan_array(self, event=None):
         """Load the latest scan of the antenna plate."""
@@ -632,15 +643,15 @@ class ModelSelector(ttk.Frame):
             bgColour = ttk.Style().lookup("TFrame", "background")
 
         # Set the expansion properties
-        # padding cols = [4, 7]
+        # padding cols = [3, 7]
         self.rowconfigure(0, weight=1)
-        self.columnconfigure(4, weight=1)
-        self.columnconfigure(7, weight=1)
+        self.columnconfigure(3, weight=1)
+        self.columnconfigure(5, weight=1)
 
         # Preview panel showing the model images
         self.imgPreview = ImageBrowser(self, virtEvent="<<model_selected>>",
                                        path="models")
-        self.imgPreview.grid(column=0, row=0, columnspan=10, sticky="NSEW")
+        self.imgPreview.grid(column=0, row=0, columnspan=6, sticky="NSEW")
         self.imgPreview.bind("<<model_selected>>",
                          lambda event : self._handler_image_selected(event))
 
@@ -654,54 +665,37 @@ class ModelSelector(ttk.Frame):
         
         # Image details
         self.fileLab = ttk.Label(self, text="Chosen Image:")
-        self.fileLab.grid(column=2, row=1, padx=(15,5), pady=5, sticky="E")
+        self.fileLab.grid(column=1, row=1, padx=(15,5), pady=5, sticky="E")
         self.modelFile = tk.StringVar()
         self.fileEnt = ttk.Entry(self, width=33, textvariable=self.modelFile)
         self.fileEnt.configure(state="readonly")
-        self.fileEnt.grid(column=3, row=1, columnspan=1, padx=5, pady=5,
+        self.fileEnt.grid(column=2, row=1, columnspan=1, padx=5, pady=5,
                           sticky="EW")
-        self.extLab = ttk.Label(self, text="Image Details:")
-        self.extLab.grid(column=2, row=2, padx=(15,5), pady=5, sticky="E")
+        self.extLab = ttk.Label(self, text="Image Scale:")
+        self.extLab.grid(column=1, row=2, padx=(15,5), pady=5, sticky="E")
         self.extent = tk.StringVar()
         self.extent.set("")
         self.extentLab = ttk.Label(self, textvariable=self.extent)
-        self.extentLab.grid(column=3, row=2, columnspan=1, padx=5, pady=5,
+        self.extentLab.grid(column=2, row=2, columnspan=1, padx=5, pady=5,
                             sticky="E")
         
         # Pixel scale slider
         self.pixScaLab = ttk.Label(self,
                                    text="Pixel Scale (arcseconds):")
-        self.pixScaLab.grid(column=5, row=1, padx=5, pady=5, sticky="W")
+        self.pixScaLab.grid(column=4, row=1, padx=5, pady=5, sticky="W")
         self.pixScale_asec = tk.DoubleVar()
         self.pixScale_asec.set(1.0)
         self.pixScaValLab = ttk.Label(self, textvariable=self.pixScale_asec,
                                       width=5, anchor="e")
-        self.pixScaValLab.grid(column=6, row=1, padx=5, pady=5, sticky="EW")
-        self.pixScale = ttk.Scale(self, from_=0.1, to=10.0, length=250,
+        self.pixScaValLab.grid(column=5, row=1, padx=5, pady=5, sticky="W")
+        self.pixScale = ttk.Scale(self, from_=0.1, to=10.0, length=450,
                                   variable=self.pixScale_asec,
                                   command=self._round_pixscale)
-        self.pixScale.grid(column=5, row=2, columnspan=2, padx=5, pady=5,
+        self.pixScale.grid(column=4, row=2, columnspan=2, padx=5, pady=5,
                            sticky="EW")
         self.pixScale.bind('<Any-ButtonRelease-1>',
                         lambda e: self.event_generate("<<pixscale_changed>>"))
-        
-        
-        # Source Declination slider
-        self.decSrcLab = ttk.Label(self,
-                                   text="Source Declination (degrees):")
-        self.decSrcLab.grid(column=8, row=1, padx=5, pady=5, sticky="E")
-        self.dec_deg = tk.DoubleVar()
-        self.dec_deg.set(-20.0)
-        self.decValLab = ttk.Label(self, textvariable=self.dec_deg, width=5,
-                                   anchor="e")
-        self.decValLab.grid(column=9, row=1, padx=5, pady=5, sticky="EW")
-        self.decScale = ttk.Scale(self, from_=-90, to=90, variable=self.dec_deg,
-                                  command=self._round_decscale)
-        self.decScale.grid(column=8, row=2, columnspan=2, padx=5, pady=5,
-                           sticky="EW")
-        self.decScale.bind('<Any-ButtonRelease-1>',
-                           lambda e: self.event_generate("<<obsparm_changed>>"))
-        
+                
     def _handler_image_selected(self, event=None):
         
         modelPath = self.imgPreview.imagePath
@@ -719,6 +713,8 @@ class ModelSelector(ttk.Frame):
         try:
             cam = cv2.VideoCapture()
             cam.open(0)
+            #cam.set(3, int(self.resX.get()))
+            #cam.set(4, int(self.resX.get()))
             for i in range(10):
                 success, img = cam.read()
             cam.release()
@@ -847,7 +843,7 @@ class ArraySelector(ttk.Frame):
         self.configOutTab.grid(column=7, row=0, columnspan=2, rowspan=6,
                                padx=5, pady=5, sticky="NSEW")
         
-        # Delete and plot elevation buttons
+        # Clear selected and all buttons
         self.delBtn = ttk.Button(self, text="Clear Selected", width=20,
                                  command=self._handler_clear_button)
         self.delBtn.grid(column=7, row=6, padx=5, pady=5, sticky="EW" )
@@ -935,7 +931,7 @@ class ArrayScanner(ttk.Frame):
         self.kernLab = ttk.Label(self.scanFrm, text="Kernel Size:")
         self.kernLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
         self.kernSize = tk.StringVar()
-        self.kernSize.set("41")
+        self.kernSize.set("0")
         self.kernEnt = ttk.Entry(self.scanFrm, width=5,
                                  textvariable=self.kernSize)
         self.kernEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
@@ -1090,7 +1086,7 @@ class ArrayScanner(ttk.Frame):
 
         # Capture an image of the array via webcam 2
         cam = cv2.VideoCapture()
-        cam.open(1)
+        cam.open(0)
         cam.set(3, int(self.resX.get()))
         cam.set(4, int(self.resX.get()))
         for i in range(10):
@@ -1131,7 +1127,7 @@ class ArrayScanner(ttk.Frame):
         root.lift()
         
 #-----------------------------------------------------------------------------#
-class ObsInputs(ttk.Frame):
+class ObsPanel(ttk.Frame):
     """Input settings for the observation (Model image, Declination of source,
     observing frequency, Robust weighting factor."""
 
@@ -1148,8 +1144,8 @@ class ObsInputs(ttk.Frame):
 
         # Figure showing the elevation of the source
         self.elFig = Figure(figsize=(8.0, 7.0), facecolor=bgColour)
-        self.figCanvas1 = FigureCanvasTkAgg(self.elFig, master=self)
-        self.elCanvas = self.figCanvas1.get_tk_widget()
+        self.elFigCanvas = FigureCanvasTkAgg(self.elFig, master=self)
+        self.elCanvas = self.elFigCanvas.get_tk_widget()
         self.elCanvas.configure(highlightthickness=0)
         self.elCanvas.configure(background=bgColour)
         self.elCanvas.grid(column=0, row=0, columnspan=3, rowspan=1,
@@ -1169,44 +1165,49 @@ class ObsInputs(ttk.Frame):
         self.decValLab.grid(column=1, row=1, padx=5, pady=5, sticky="E")
         self.decScale = ttk.Scale(self, from_=-90, to=90, variable=self.dec_deg,
                                   command=self._round_decscale)
-        self.decScale.grid(column=0, row=2, columnspan=3, padx=25, pady=5,
-                           sticky="EW")
+        self.decScale.grid(column=0, row=2, columnspan=3, padx=(5, 25),
+                           pady=5, sticky="EW")
+#        self.decScale.bind('<Any-ButtonRelease-1>',
+#                        lambda e: self.event_generate("<<obsparm_changed>>"))
         self.decScale.bind('<Any-ButtonRelease-1>',
-                           lambda e: self.event_generate("<<obsparm_changed>>"))
+                        lambda e: self.event_generate("<<selection_changed>>"))
         
         # Figure showing a histogram of the baseline length
         self.blFig = Figure(figsize=(8.0, 7.0), facecolor=bgColour)
-        self.figCanvas2 = FigureCanvasTkAgg(self.blFig, master=self)
-        self.blCanvas = self.figCanvas2.get_tk_widget()
+        self.blFigCanvas = FigureCanvasTkAgg(self.blFig, master=self)
+        self.blCanvas = self.blFigCanvas.get_tk_widget()
         self.blCanvas.configure(highlightthickness=0)
         self.blCanvas.configure(background=bgColour)
         self.blCanvas.grid(column=3, row=0, columnspan=3, rowspan=1,
                            padx=0, pady=0, sticky="NSEW")
         self.blAx = self.blFig.add_subplot(111)
+        self.blAxTop = self.blAx.twiny()
+        #self.blAx.xaxis.set_major_locator(MaxNLocator(4))
         plt.setp(self.blAx.get_yticklabels(), visible=False)
         plt.setp(self.blAx.get_xticklabels(), visible=False)
         
-        # Source Declination slider
+        # Frequency slider
         self.freqLab = ttk.Label(self, text="Observing Frequency (MHz):")
-        self.freqLab.grid(column=3, row=1, padx=5, pady=5, sticky="E")
+        self.freqLab.grid(column=3, row=1, padx=(25, 5), pady=5, sticky="E")
         self.freq_MHz = tk.StringVar()
-        self.freq_MHz.set(1420)
-        self.freqValLab = ttk.Label(self, textvariable=self.freq_MHz, width=15,
+        self.freq_MHz.set(1420.0)
+        self.freqValLab = ttk.Label(self, textvariable=self.freq_MHz, width=12,
                                    anchor="e")
-        self.freqValLab.grid(column=4, row=1, padx=25, pady=5, sticky="E")
+        self.freqValLab.grid(column=4, row=1, padx=5, pady=5, sticky="E")
         self.freqScale = ttk.Scale(self, from_=500, to=110000,
                                    variable=self.freq_MHz,
                                    command=self._round_freqscale)
-        self.freqScale.grid(column=3, row=2, columnspan=3, padx=5, pady=5,
-                           sticky="EW")
+        self.freqScale.grid(column=3, row=2, columnspan=3, padx=(25,5),
+                            pady=5, sticky="EW")
+#        self.freqScale.bind('<Any-ButtonRelease-1>',
+#                        lambda e: self.event_generate("<<obsparm_changed>>"))
         self.freqScale.bind('<Any-ButtonRelease-1>',
-                           lambda e: self.event_generate("<<obsparm_changed>>"))
+                        lambda e: self.event_generate("<<selection_changed>>"))
 
         # Add the controls and status icons
-        self.statFrm = StatusFrame(self, boxWidth=22, gapWidth=155)
+        self.statFrm = StatusFrame(self, boxWidth=22, gapWidth=165)
         self.statFrm .grid(column=0, row=4, columnspan=6, padx=5, pady=5,
                            sticky="EW")
-        
         
     def _round_freqscale(self, e=None):
         value = self.freqScale.get()
@@ -1217,6 +1218,101 @@ class ObsInputs(ttk.Frame):
         value = self.decScale.get()
         if int(value) != value:
             self.decScale.set(round(value))
+
+    def plot_elevation(self, elCurveDict=None):
+        """Create a plot showing the elevation of the source as seen from 
+        the currently selected telescopes."""
+        
+        # Clear the axis. Return if nothing to plot
+        self.elAx.clear()
+        self.elAx.set_title("Elevation of Source")
+        if elCurveDict is None or len(elCurveDict)==0:
+            self.elFigCanvas.show()
+            return
+        
+        # Re-plot each of the elevation curves
+        colLst=["r", "b", "g", "m", "c", "y", "k"]
+        for i, label in enumerate(elCurveDict.keys()):
+            haArr_hr, elArr_deg = elCurveDict[label]
+            self.elAx.plot(haArr_hr, elArr_deg, color=colLst[i%len(colLst)],
+                           label=label)
+            
+        # Format labels and legend
+        self.elAx.set_xlim(-12.0, 12.0)
+        self.elAx.set_ylim(0.0, 90.0)
+        self.elAx.set_xlabel("Hour Angle (hours)")
+        self.elAx.set_ylabel("Elevation (degrees)")
+        self.elAx.margins(0.02)
+        leg = self.elAx.legend(shadow=False)
+        for t in leg.get_texts():
+            t.set_fontsize('small')
+
+        # Show the plot
+        self.elFigCanvas.show()
+        
+    def plot_scales(self, lBaseArr_lam=None):
+        """Create a plot showing the distribution of baseline lengths and
+        equivalent scales."""
+        
+        # Clear the axis. Return if nothing to plot
+        self.blAx.clear()
+        self.blAxTop.clear()
+        if lBaseArr_lam is None or len(lBaseArr_lam)==0:
+            self.blFigCanvas.show()
+            return
+        
+        # Re-plot a histogram of baseline lengths
+        xLst = []
+        yLst = []
+        for l in lBaseArr_lam:
+            xLst += [l/1e3, l/1e3, l/1e3]
+            yLst += [-0.1, 1, -0.1]
+        self.blAx.plot(xLst, yLst, lw=1.0, alpha=0.4)
+        self.blAx.set_ylim(0, 1.4)
+        self.blAx.set_xlim(0.0, np.max(lBaseArr_lam)*1.05e-3)
+        self.blAxTop.set_xlim(self.blAx.get_xlim()) 
+
+        # Angle 2 str
+        def ang2str(ang_deg):
+            try:
+                ang_deg = float(ang_deg)
+                ang_arcsec = ang_deg*3600.0
+                if ang_arcsec<60.0:
+                    text = u'{:.1f}"'.format(ang_arcsec)
+                elif ang_arcsec>=60.0 and ang_arcsec<3600.0:
+                    text = u"{:.1f}'".format(ang_deg*60.0)
+                else:
+                    text = u"{:.1f}\u00B0".format(ang_deg)
+                return text
+            except Exception:
+                return "*"
+        
+        # Conversion between uvdist & scale
+        def tick_function(X):
+            np.seterr(divide='ignore', invalid='ignore')
+            altUnit = np.degrees(1.22  / (X * 1e3))*3600.0
+            return [ang2str(z) for z in altUnit]
+        
+        # Format labels and legend
+        tickLocs = self.blAx.xaxis.get_majorticklocs()
+        print(tickLocs)
+        self.blAxTop.set_xticks(tickLocs)
+        self.blAxTop.set_xlim(self.blAx.get_xlim()) 
+        print(self.blAx.get_xlim())
+        print(self.blAxTop.get_xlim())
+        self.blAxTop.set_xticklabels(tick_function(tickLocs))        
+        self.blAx.set_xlabel("Baseline Length (kilo-lambda)")
+        self.blAxTop.set_xlabel("Angular Scale")
+        self.blAx.set_ylabel("Arbritrary Units")
+        #self.blAx.margins(0.02)
+        #self.blAxTop.margins(0.02)
+
+        print(self.blAx.get_xlim())
+        print(self.blAxTop.get_xlim())
+        # Show the plot
+        self.blFigCanvas.show()
+
+
         
 #-----------------------------------------------------------------------------#
 class StatusFrame(ttk.Frame):
@@ -1285,7 +1381,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[2], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltuvCovBtn = ttk.Button(self, text="Calculate & Plot", width=16,
+        self.pltuvCovBtn = ttk.Button(self, text="Calculate", width=16,
                     command=lambda: self.event_generate("<<plot_uvcoverage>>"))
         self.pltuvCovBtn.configure(state="disabled")
         self.canvas.create_window(self.X[2], self.Y4, window=self.pltuvCovBtn)
@@ -1298,7 +1394,7 @@ class StatusFrame(ttk.Frame):
                                 self.X[3], self.Y2 + boxWidth / 2.0,
                                 width=2, fill="grey", joinstyle=tk.MITER,
                                 arrow=tk.LAST)
-        self.pltModFFTbtn = ttk.Button(self, text="Calculate & Plot", width=16,
+        self.pltModFFTbtn = ttk.Button(self, text="Calculate", width=16,
                         command=lambda: self.event_generate("<<plot_modFFT>>"))
         self.pltModFFTbtn.configure(state="disabled")
         self.canvas.create_window(self.X[3], self.Y4, window=self.pltModFFTbtn)
@@ -1309,21 +1405,21 @@ class StatusFrame(ttk.Frame):
                                 self.X[-1] + gapWidth / 2.5, self.Y3,
                                 self.X[-1] + gapWidth / 2.5, self.Y2,
                                 width=2, fill="black", joinstyle=tk.MITER)
-        self.canvas.create_line(self.X[5], self.Y3,
-                                self.X[5], self.Y4,
+        self.canvas.create_line(self.X[6], self.Y3,
+                                self.X[6], self.Y4,
                                 width=2, fill="black",
                                 joinstyle=tk.MITER)
         self.obsBtn = ttk.Button(self, text = "Do Observation", width=16,
                     command=lambda: self.event_generate("<<do_observation>>"))
         self.obsBtn.configure(state="disabled")
-        obsBtnW = self.canvas.create_window(self.X[5], self.Y4,
+        obsBtnW = self.canvas.create_window(self.X[6], self.Y4,
                                             window=self.obsBtn)
 
         # Draw the show results button
-        self.showBtn = ttk.Button(self, text = "Show Plot Window", width=16,
-                    command=lambda: self.event_generate("<<show_results>>"))
-        showBtnW = self.canvas.create_window(self.X[6], self.Y4,
-                                             window=self.showBtn)
+#        self.showBtn = ttk.Button(self, text = "Show Plot Window", width=16,
+#                    command=lambda: self.event_generate("<<show_results>>"))
+#        showBtnW = self.canvas.create_window(self.X[6], self.Y4,
+#                                             window=self.showBtn)
         
     def _draw_checkbox(self, xCent, yCent, size, tag, state=0, lw=3):
         """Draw a large checkbox on the canvas with a specified state."""
@@ -1653,9 +1749,9 @@ class PlotFrame(ttk.Frame):
                             self.plot_image("obsImg", title="Observed Image")
         
         # Add the information panel
-        self.infoPanel = InformationPanel(self)
-        self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=2,
-                            padx=5, pady=5, sticky="W")
+#        self.infoPanel = InformationPanel(self)
+#        self.infoPanel.grid(column=0, row=1, columnspan=1, rowspan=2,
+#                            padx=5, pady=5, sticky="W")
         
         # Add the matplotlib toolbar
         self.tbarFrm = ttk.Frame(self)
@@ -1663,9 +1759,9 @@ class PlotFrame(ttk.Frame):
         self.tbarFrm.grid(column=1, row=1, padx=5, pady=5, sticky="NE")
 
         # Add the show control window Button
-        self.showBtn = ttk.Button(self, text = "Show Control Window", width=20,
-                                  command=self._show_control_window)
-        self.showBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
+#        self.showBtn = ttk.Button(self, text = "Show Control Window", width=20,
+#                                  command=self._show_control_window)
+#         self.showBtn.grid(column=1, row=2, padx=5, pady=5, sticky="SE")
 
         # Show the plot
         self.show()
@@ -1885,7 +1981,7 @@ if __name__ == "__main__":
         fontSize = 12
     else:
         bgColour = ttk.Style().lookup("TFrame", "background")
-        fontSize = 10        
+        fontSize = 12       
     ttk.Style().configure("TFrame", background=bgColour)
     ttk.Style().configure("TLabelframe", background=bgColour)
     ttk.Style().configure("TLabel", background=bgColour)

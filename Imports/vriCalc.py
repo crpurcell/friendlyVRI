@@ -5,12 +5,12 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# REQUIRED: Requires numpy, tkinter, matplotlib and PIL/PILLOW                #
+# REQUIRED: Requires numpy and PIL/PILLOW                                     #
 #                                                                             #
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 30-Jun-2017 by C. Purcell                                         #
+# MODIFIED: 19-May-2018 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -34,6 +34,7 @@
 #      invert_observation   ... apply the uv-coverage to the model image      #
 #      get_status           ... set the status flags of each step             #
 #      get_array_params     ... get the parameters of an available array      #
+#      get_baseline_lengths ... get the baseline lengths for an array         #
 #      calc_elevation_curve ... calculate elevation curves                    #
 #                                                                             #
 #  antArray (class)                                                           #
@@ -49,7 +50,7 @@
 #                                                                             #
 # The MIT License (MIT)                                                       #
 #                                                                             #
-# Copyright (c) 2017 Cormac R. Purcell and Roy Truelove                       #
+# Copyright (c) 2017-2018 Cormac R. Purcell and Roy Truelove                  #
 #                                                                             #
 # Permission is hereby granted, free of charge, to any person obtaining a     #
 # copy of this software and associated documentation files (the "Software"),  #
@@ -88,8 +89,8 @@ class observationManager:
     a combination of radio-interferometer array configurations.
 
     The user selects one or more array configurations from the available list
-    and chooses a range of observed hour-angles for each. The sampling cadence
-    and observing frequency are common to all array configurations.
+    and chooses a range of observed hour-angles for each. The observing 
+    frequency is common to all array configurations.
     
     The observationManager class keeps track of the observing parameters and
     calculates the uv-coverage, which is then applied to a model image to
@@ -117,8 +118,8 @@ class observationManager:
         self.telescopeLatDict = {}
         self.telescopeDiamDict = {}
         
-        # Table of selected arrays. Each entry is a dictionary that will
-        # contain the following keys:
+        # Table(list) of selected arrays. Each entry is a dictionary that
+        # will contain the following keys:
         #  "key"          ... unique key composed of <telescope>_<config>
         #  "telescope"    ... name of telescope
         #  "config"       ... name of array configuration
@@ -238,20 +239,6 @@ class observationManager:
             
             # Create an antArray object for each and store in a dictionary
             self._load_one_array(arrayFileLst[i])
-            
-            # Create an antArray object for each and store in a dictionary
-#            ar = antArray(arrayFileLst[i])
-#            if ar.telescope is not None:
-#                key = ar.telescope + "_" + ar.config
-#                value = {"row": i,
-#                         "telescope": ar.telescope,
-#                         "config": ar.config,
-#                         "antArray": ar}
-#                self.arrsAvailable[key] = value
-
-#                # Populate the telescope lookup tables
-#                self.telescopeLatDict[ar.telescope] = ar.latitude_deg
-#                self.telescopeDiamDict[ar.telescope] = ar.diameter_m
             
         if self.verbose:
             print("Successfully loaded %d array configurations." 
@@ -385,6 +372,7 @@ class observationManager:
             Source declination (deg)  =   20.0"""
         
         self.freq_Hz = float(freq_MHz)*1e6
+        self.lambda_m = C/self.freq_Hz
         self.dec_deg = float(dec_deg)
 
         # Set the downstream status flags
@@ -711,7 +699,7 @@ class observationManager:
         """Apply the gridded uv-coverage to the model FFT image, and
         invert to produce the final observed image."""
         
-        # First check that tge gridding has been done
+        # First check that the gridding has been done
         if not self.statusuvGrid:
             if self.verbose:
                 print("The uv-coverage has not been gridded!")
@@ -720,9 +708,8 @@ class observationManager:
         # Set the downstream flag
         self.statusObsDone = False
         
+        # Invert to produce the final image
         try:
-            
-            # Invert to produce the final image
             self.obsImgArr = np.fft.ifft2(np.fft.ifftshift(self.obsFFTarr))
         except Exception:
             if self.verbose:
@@ -749,7 +736,7 @@ class observationManager:
         return d
             
     def get_scales(self):
-        """Return the values of the status flags as a dictionary."""
+        """Return the values of the calculated scales as a dictionary."""
         
         d = {"scaleMin_deg": self.scaleMin_deg,
              "scaleMax_deg": self.scaleMax_deg,
@@ -794,6 +781,23 @@ class observationManager:
             d["x"] = antArrayRow.eastArr_m.copy()
             d["y"] = antArrayRow.northArr_m.copy()
         return d
+    
+    def get_baseline_lengths(self, row=None, key=None, doKiloLam=True):
+        """Return the baseline lengths for an antenna array from one entry
+        in the 'arrsAvailable' dictionary. The query can take either a row
+        number or the key=['<telescope>_<configuration>']."""
+
+        if row is not None:
+            arrsAvailLst = od2list(self.arrsAvailable)
+            if row>=len(arrsAvailLst):
+                return None
+            lBase_m =  arrsAvailLst[row]["antArray"].lBase_m
+        if key is not None:
+            if not key in self.arrsAvailable:
+                return None
+            antArrayRow = self.arrsAvailable[key]["antArray"]
+            lBase_m = antArrayRow.lBase_m
+        return lBase_m
         
     def calc_elevation_curve(self, telescope, haArr_hr=None):
         """Calculate the elevation curves for a telescope and the current

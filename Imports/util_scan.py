@@ -56,7 +56,8 @@ def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
     # Open the image, convert to luminance greyscale and then a numpy array
     imgPIL = Image.open(imgName).convert("L")
     #imgArr = 256 - np.flipud(np.asarray(imgPIL))
-    imgArr = 256 - np.asarray(imgPIL)
+    #imgArr = 256 - np.asarray(imgPIL)
+    imgArr = np.asarray(imgPIL)
 
     # Subtract the flat image
     if flatImgName:
