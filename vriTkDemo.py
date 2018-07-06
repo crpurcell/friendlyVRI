@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 18-May-2018 by C.Purcell                                          #
+# MODIFIED: 06-Jul-2018 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -131,7 +131,8 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
+#from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 # Webcam library
 try:
@@ -1074,7 +1075,8 @@ class ArrayScanner(ttk.Frame):
                                   ax=self.ax)
 
             # Show the scanned figure and allow saving
-            self.figCanvas.show()
+            #self.figCanvas.show()
+            self.figCanvas.draw()
 
             # Enable/disable saving
             if len(self.X_m)>0:
@@ -1907,7 +1909,9 @@ class PlotFrame(ttk.Frame):
         self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
                                  wspace=0.27, hspace=0.24)
         self.toolbar.update()
-        self.figCanvas.show()
+        #self.figCanvas.show()
+        self.figCanvas.draw()
+        
 
     def clear_by_state(self, stateDict):
         """Use a dictionary to clear downstream plots based on state."""
@@ -1963,7 +1967,8 @@ class PlotFrame(ttk.Frame):
         self.show()
 
 #-----------------------------------------------------------------------------#
-class MPLnavToolbar(NavigationToolbar2TkAgg):
+#class MPLnavToolbar(NavigationToolbar2TkAgg):
+class MPLnavToolbar(NavigationToolbar2Tk):
     """Subclass the MPL navigation toolbar to disable the coord readout."""
     
     def set_message(self, msg):
