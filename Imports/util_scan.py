@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 15-Aug-2017 by C. Purcell                                         #
+# MODIFIED: 06-Jul-2017 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -71,7 +71,7 @@ def scan_to_pixcoords(imgName, eSize=41, threshold_sigma=3.0, minPix=100,
     cropY1 = min([cropY, Ny])
     dx = max(0, Nx - cropX1)
     dy = max(0, Ny - cropY1)
-    imgArr = imgArr[dy/2:Ny-dy/2, dx/2:Nx-dx/2]
+    imgArr = imgArr[dy//2:Ny-dy//2, dx//2:Nx-dx//2]
     
     # Remove large-scale background using morphological opening
     if eSize>=3:
