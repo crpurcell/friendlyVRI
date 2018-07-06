@@ -388,7 +388,7 @@ class App(ttk.Frame):
     def _on_sel_change(self, event=None):
         """When the arrays selected change in the GUI, refresh the observation
         parameters in the observation manager."""
-        print("SEL", self.inputs.freq_MHz.get())
+
         # Reset the common parameters
         self.obsManager.set_obs_parms(self.inputs.freq_MHz.get(),
                                       self.inputs.dec_deg.get())
@@ -412,7 +412,7 @@ class App(ttk.Frame):
     def _on_obsparm_change(self, event=None):
         """When the observation parameters change in the GUI, reset the 
         calculations."""
-        print("OBS")
+
         # Reset the common parameters
         try:
             self.obsManager.set_obs_parms(float(self.inputs.freq_MHz.get()),
@@ -503,7 +503,7 @@ class App(ttk.Frame):
     def _on_plot_scalehist(self, event=None):
         """Create a plot showing a histogram of the baseline lengths and
         compare to the power in the source model."""
-        print(self.obsManager.lambda_m)
+        
         # Query the selected array configurations
         selTab = self.obsManager.get_selected_arrays()
         configLst = []
@@ -1044,7 +1044,7 @@ class ArrayScanner(ttk.Frame):
 
         # Capture an image of the array via webcam 2
         cam = cv2.VideoCapture()
-        cam.open(0)
+        cam.open(1)
         cam.set(3, int(self.resX.get()))
         cam.set(4, int(self.resX.get()))
         for i in range(10):
@@ -1075,7 +1075,6 @@ class ArrayScanner(ttk.Frame):
                                   ax=self.ax)
 
             # Show the scanned figure and allow saving
-            #self.figCanvas.show()
             self.figCanvas.draw()
 
             # Enable/disable saving
@@ -1229,7 +1228,7 @@ class ObsPanel(ttk.Frame):
         self.elAx.clear()
         self.elAx.set_title("Elevation of Source")
         if elCurveDict is None or len(elCurveDict)==0:
-            self.elFigCanvas.show()
+            self.elFigCanvas.draw()
             return
         
         # Re-plot each of the elevation curves
@@ -1250,7 +1249,7 @@ class ObsPanel(ttk.Frame):
             t.set_fontsize('small')
 
         # Show the plot
-        self.elFigCanvas.show()
+        self.elFigCanvas.draw()
         
     def plot_scales(self, lBaseArr_lam=None):
         """Create a plot showing the distribution of baseline lengths and
@@ -1260,7 +1259,7 @@ class ObsPanel(ttk.Frame):
         self.blAx.clear()
         self.blAxTop.clear()
         if lBaseArr_lam is None or len(lBaseArr_lam)==0:
-            self.blFigCanvas.show()
+            self.blFigCanvas.draw()
             return
         
         # Re-plot a histogram of baseline lengths
@@ -1297,11 +1296,8 @@ class ObsPanel(ttk.Frame):
         
         # Format labels and legend
         tickLocs = self.blAx.xaxis.get_majorticklocs()
-        print(tickLocs)
         self.blAxTop.set_xticks(tickLocs)
         self.blAxTop.set_xlim(self.blAx.get_xlim()) 
-        print(self.blAx.get_xlim())
-        print(self.blAxTop.get_xlim())
         self.blAxTop.set_xticklabels(tick_function(tickLocs))        
         self.blAx.set_xlabel("Baseline Length (kilo-lambda)")
         self.blAxTop.set_xlabel("Angular Scale")
@@ -1309,11 +1305,8 @@ class ObsPanel(ttk.Frame):
         #self.blAx.margins(0.02)
         #self.blAxTop.margins(0.02)
 
-        print(self.blAx.get_xlim())
-        print(self.blAxTop.get_xlim())
         # Show the plot
-        self.blFigCanvas.show()
-
+        self.blFigCanvas.draw()
 
         
 #-----------------------------------------------------------------------------#
@@ -1909,7 +1902,6 @@ class PlotFrame(ttk.Frame):
         self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
                                  wspace=0.27, hspace=0.24)
         self.toolbar.update()
-        #self.figCanvas.show()
         self.figCanvas.draw()
         
 

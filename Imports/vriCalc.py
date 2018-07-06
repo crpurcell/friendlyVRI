@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove (Macquarie University)                               #
 #                                                                             #
-# MODIFIED: 19-May-2018 by C. Purcell                                         #
+# MODIFIED: 06-Jul-2018 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -793,6 +793,7 @@ class observationManager:
                 return None
             lBase_m =  arrsAvailLst[row]["antArray"].lBase_m
         if key is not None:
+            key = key.decode("utf-8")
             if not key in self.arrsAvailable:
                 return None
             antArrayRow = self.arrsAvailable[key]["antArray"]
@@ -809,6 +810,7 @@ class observationManager:
         dec_rad = np.radians(self.dec_deg)
 
         telescope = np.bytes_(telescope).decode("utf-8")  # Python 3 fix
+        #telescope = telescope.decode("utf-8")  # Python 3 fix
         if telescope in self.telescopeLatDict.keys():
             latitude_rad = np.radians(self.telescopeLatDict[telescope])
             elArr_rad  = (np.sin(latitude_rad) * np.sin(dec_rad) +
