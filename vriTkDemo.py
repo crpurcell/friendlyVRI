@@ -10,7 +10,7 @@
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
 #           Roy Truelove  (Macquarie University)                              #
 #                                                                             #
-# MODIFIED: 06-Jul-2018 by C.Purcell                                          #
+# MODIFIED: 07-Jul-2018 by C.Purcell                                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -122,7 +122,6 @@ except Exception:  # Python 3.x
     import tkinter.filedialog as tkFileDialog
     import tkinter.simpledialog as tkSimpleDialog
     from tkinter.scrolledtext import ScrolledText as tkScrolledText
-
 import numpy as np
 import matplotlib as mpl
 mpl.use("TkAgg")
@@ -131,8 +130,13 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-#from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+
+from distutils.version import LooseVersion
+if LooseVersion(mpl.__version__) < LooseVersion("2.2"):
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg \
+        as NavigationToolbar2Tk
+else:
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 # Webcam library
 try:
