@@ -87,6 +87,20 @@
 
 import os
 import sys
+
+
+
+
+
+
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.colors import LogNorm
+from matplotlib.ticker import MaxNLocator
+
+
 try:               # Python 2.7x
     import Tkinter as tk
     import ttk
@@ -95,6 +109,9 @@ try:               # Python 2.7x
     import tkFileDialog
     import tkSimpleDialog
     from ScrolledText import ScrolledText as tkScrolledText
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvasTk
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as NavigationToolbar2Tk
+
 except Exception:  # Python 3.x
     import tkinter as tk
     from tkinter import ttk
@@ -103,16 +120,11 @@ except Exception:  # Python 3.x
     import tkinter.filedialog as tkFileDialog
     import tkinter.simpledialog as tkSimpleDialog
     from tkinter.scrolledtext import ScrolledText as tkScrolledText
+    from matplotlib.backends.backend_tkagg import FigureCanvasTk
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
-import numpy as np
-import matplotlib as mpl
+
 mpl.use("TkAgg")
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-from matplotlib.colors import LogNorm
-from matplotlib.ticker import MaxNLocator
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 # Webcam library
 try:
@@ -124,7 +136,7 @@ except ImportError:
 # Disable cv2 use on Mac OS because of buggy implementation
 if sys.platform=="darwin":
     hasCV2 = False
-    
+
 from Imports.util_tk import *
 from Imports.vriCalc import *
 
@@ -285,7 +297,7 @@ class App(ttk.Frame):
         
         self.figWin = tk.Toplevel(self, background=self.bgColour)
         self.figWin.title(title)
-        figCanvas = FigureCanvasTkAgg(fig, master=self.figWin)
+        figCanvas = FigureCanvasTk(fig, master=self.figWin)
         loneCan = figCanvas.get_tk_widget()
         loneCan.configure(highlightthickness=0)
         loneCan.configure(background=self.bgColour)
@@ -1252,7 +1264,7 @@ class PlotFrame(ttk.Frame):
         
         # Create the blank figure canvas and grid its tk canvas
         self.fig = Figure(figsize=(13.0, 8.0), facecolor=bgColour)
-        self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.figCanvas = FigureCanvasTk(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
         self.canvas.configure(background=bgColour)
@@ -1434,7 +1446,7 @@ class PlotFrame(ttk.Frame):
         self.fig.subplots_adjust(left=0.07, right=0.97, top=0.95, bottom=0.07,
                                  wspace=0.27, hspace=0.24)
         self.toolbar.update()
-        self.figCanvas.show()
+        self.figCanvas.draw()
 
     def clear_by_state(self, stateDict):
         """Use a dictionary to clear downstream plots based on state."""
@@ -1490,7 +1502,7 @@ class PlotFrame(ttk.Frame):
         self.show()
 
 #-----------------------------------------------------------------------------#
-class MPLnavToolbar(NavigationToolbar2TkAgg):
+class MPLnavToolbar(NavigationToolbar2Tk):
     """Subclass the MPL navigation toolbar to disable the coord readout."""
     
     def set_message(self, msg):

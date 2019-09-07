@@ -47,15 +47,19 @@ try:
     import Tkinter as tk
     import ttk
     import tkFont
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg as FigureCanvasTk
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg as NavigationToolbar2Tk
+
 except Exception:
     # Python 3.x
     import tkinter as tk
     from tkinter import ttk
     import tkinter.font as tkFont
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_tkagg import FigureCanvasTk
+    from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
+
 import numpy as np
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 
 #-----------------------------------------------------------------------------#
@@ -738,8 +742,8 @@ class SingleFigFrame(ttk.Frame):
 
         # Create the blank figure canvas and grid its tk canvas
         self.fig = Figure(figsize=(4.5, 4.0))
-        self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
-        self.figCanvas.show()
+        self.figCanvas = FigureCanvasTk(self.fig, master=self)
+        self.figCanvas.draw()
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.grid(column=0, row=0, padx=0, pady=0, sticky="NSEW")
         self.columnconfigure(0, weight=1)
@@ -752,7 +756,7 @@ class SingleFigFrame(ttk.Frame):
         return self.ax
 
     def show(self):
-        self.figCanvas.show()
+        self.figCanvas.draw()
 
     
 #-----------------------------------------------------------------------------#
