@@ -5,7 +5,7 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 11-May-2017 by C. Purcell                                         #
+# MODIFIED: 14-Feb-2020 by C. Purcell                                         #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -55,7 +55,6 @@ except Exception:
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 
 
 #-----------------------------------------------------------------------------#
