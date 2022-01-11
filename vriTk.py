@@ -106,6 +106,7 @@ except Exception:  # Python 3.x
 
 import numpy as np
 import matplotlib as mpl
+import platform
 mpl.use("TkAgg")
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -1253,7 +1254,10 @@ class PlotFrame(ttk.Frame):
                         "obsImg":   [None, "236", 0]}
         
         # Create the blank figure canvas and grid its tk canvas
-        self.fig = Figure(figsize=(13.0, 8.0), facecolor=bgColour)
+        if 'Windows-10' in platform.platform():
+            self.fig = Figure(figsize=(13.0, 8.0))
+        else:
+            self.fig = Figure(figsize=(13.0, 8.0), facecolor=bgColour)
         self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas = self.figCanvas.get_tk_widget()
         self.canvas.configure(highlightthickness=0)
@@ -1310,7 +1314,7 @@ class PlotFrame(ttk.Frame):
             ax.clear()
             self.axDict[axName][2] = 0
         else:
-            ax = self.fig.add_subplot(loc)
+            ax = self.fig.add_subplot(int(loc))
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.set_title(title)
@@ -1351,7 +1355,7 @@ class PlotFrame(ttk.Frame):
             ax.clear()
             self.axDict[axName][2] = 0
         else:
-            ax = self.fig.add_subplot(loc)
+            ax = self.fig.add_subplot(int(loc))
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.xaxis.set_major_locator(MaxNLocator(4))
@@ -1390,7 +1394,7 @@ class PlotFrame(ttk.Frame):
             ax.clear()
             self.axDict[axName][2] = 0
         else:
-            ax = self.fig.add_subplot(loc)
+            ax = self.fig.add_subplot(int(loc))
         plt.setp(ax.get_yticklabels(), visible=False)
         plt.setp(ax.get_xticklabels(), visible=False)
         ax.xaxis.set_major_locator(MaxNLocator(4))
