@@ -1588,12 +1588,12 @@ class PlotFrame(ttk.Frame):
 
         # Dictionary tracking the 6 plot axes and their state (active/clear)
         #              {"AxisName": [axis, location, state],}
-        self.axDict  = {"modelImg": [None, "231", 0],
-                        "modelFFT": [None, "234", 0],
-                        "uvCov":    [None, "232", 0],
-                        "beam":     [None, "233", 0],
-                        "obsFFT":   [None, "235", 0],
-                        "obsImg":   [None, "236", 0]}
+        self.axDict  = {"modelImg": [None, 231, 0],
+                        "modelFFT": [None, 234, 0],
+                        "uvCov":    [None, 232, 0],
+                        "beam":     [None, 233, 0],
+                        "obsFFT":   [None, 235, 0],
+                        "obsImg":   [None, 236, 0]}
         
         # Create the blank figure canvas and grid its tk canvas
         if 'Windows-10' in platform.platform():
