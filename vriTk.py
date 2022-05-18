@@ -113,8 +113,6 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
-
-# Webcam library
 try:
     import cv2
     hasCV2 = True
@@ -1094,7 +1092,7 @@ class ObsInputs(ttk.Frame):
                             sticky="E")
         
         # Browse button
-        self.browsePhoto = tk.PhotoImage(file='Imports/folder.gif')
+        self.browsePhoto = tk.PhotoImage(file='Imports/folder_small.gif')
         self.browseBtn = ttk.Button(self, image=self.browsePhoto,
                                     command=self._handler_browse_button)
         self.browseBtn.grid(column=6, row=0, rowspan=2, padx=5, pady=5,
@@ -1102,7 +1100,7 @@ class ObsInputs(ttk.Frame):
 
         # Camera button
         if hasCV2:
-            self.cameraPhoto = tk.PhotoImage(file='Imports/camera.gif')
+            self.cameraPhoto = tk.PhotoImage(file='Imports/camera_small.gif')
             self.cameraBtn = ttk.Button(self, image=self.cameraPhoto,
                                         command=self._handler_capture_photo)
             self.cameraBtn.grid(column=7, row=0, rowspan=2, padx=5, pady=5,

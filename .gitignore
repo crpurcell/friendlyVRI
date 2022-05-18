@@ -97,3 +97,6 @@ ENV/
 
 # Webcam capture file
 models/webcam.png
+
+# Array scan file
+arrays/scan.png
