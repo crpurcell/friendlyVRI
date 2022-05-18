@@ -918,8 +918,8 @@ class ArrayScanner(ttk.Frame):
 
         # Capture an image of the array via webcam 2
         cam = cv2.VideoCapture()
-        #cam.open(1)
-        cam.open(0)
+        cam.open(1)
+        #cam.open(0)
         cam.set(3, int(self.resX.get()))
         cam.set(4, int(self.resX.get()))
         for i in range(10):
