@@ -5,12 +5,10 @@
 #                                                                             #
 # PURPOSE:  A virtual interferometer application written in Tkinter.          #
 #                                                                             #
-# REQUIRED: Requires numpy, tkinter, matplotlib and PIL/PILLOW                #
+# REQUIRED: Requires numpy, tkinter, matplotlib, pillow, scipy                #
 #                                                                             #
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
-#           Roy Truelove  (Macquarie University)                              #
-#                                                                             #
-# MODIFIED: 14-Feb-2020 by C.Purcell                                          #
+#           Roy Truelove      (Macquarie University)                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
@@ -63,7 +61,7 @@
 #                                                                             #
 # The MIT License (MIT)                                                       #
 #                                                                             #
-# Copyright (c) 2017 Cormac R. Purcell and Roy Truelove                       #
+# Copyright (c) 2017 - 2022 Cormac R. Purcell and Roy Truelove                #
 #                                                                             #
 # Permission is hereby granted, free of charge, to any person obtaining a     #
 # copy of this software and associated documentation files (the "Software"),  #
@@ -113,7 +111,6 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MaxNLocator
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-#from matplotlib.backends.backend_tkagg import NavigationToolbar2TkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 
 
@@ -123,23 +120,22 @@ try:
     hasCV2 = True
 except ImportError:
     hasCV2 = False
-
-# Disable cv2 use on Mac OS because of buggy implementation
-if sys.platform=="darwin":
-    hasCV2 = False
     
 from Imports.util_tk import *
 from Imports.vriCalc import *
+from Imports.util_scan import *
 
 
 #-----------------------------------------------------------------------------#
 class App(ttk.Frame):
     """Class defining the Virtual Radio Interferometer application.
 
-    This class creates a root window used to set observation parameters, choose
-    and accumulate array configurations and load a model image. A secondary 
-    Toplevel window is used to display the input, output and intermediate
-    Fourier transforms and images."""
+    This class creates a root window used to set observation
+    parameters, choose and accumulate array configurations and load a
+    model image. A secondary Toplevel window is used to display the
+    input, output and intermediate Fourier transforms and images.
+
+    """
     
     def __init__(self, parent, bgColour=None, *args, **kwargs):
         ttk.Frame.__init__(self, parent, *args, **kwargs)
@@ -197,6 +193,9 @@ class App(ttk.Frame):
         self.dispWin.columnconfigure(0, weight=1)
         self.dispWin.rowconfigure(0, weight=1)
 
+        # Placeholder for the scan window
+        self.scanWin = None
+
         # Draw the display interface
         self.pltFrm = PlotFrame(self.dispWin, bgColour=self.bgColour)
         self.pltFrm.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
@@ -248,6 +247,8 @@ class App(ttk.Frame):
                   lambda event : self._on_show_results(event))
         self.parent.bind("<<load_model_image>>",
                        lambda event : self._on_load_model(event))
+        self.parent.bind("<<show_scanwin>>",
+                         lambda event : self._show_scanwin(event))  
         
         # Force a minimum size on the windows & set resize properties
         self.parent.update()
@@ -566,6 +567,44 @@ class App(ttk.Frame):
         self.dispWin.focus_force()
         self.dispWin.lift()
         
+    def _show_scanwin(self, event=None):
+
+        exists=0
+        try:
+            exists = self.scanWin.winfo_exists()
+        except Exception:
+            pass
+        if exists:
+            self.scanWin.focus_force()
+            self.scanWin.lift()
+        else:
+            self.scanWin = tk.Toplevel(self, background=self.bgColour)
+            self.scanWin.title("Friendly VRI: Array Scanner Window")
+            self.scanWin.resizable(True, True)
+            self.scanWin.columnconfigure(0, weight=1)
+            self.scanWin.rowconfigure(0, weight=1)
+            self.scanner = ArrayScanner(self.scanWin)
+            self.scanner.grid(row=0, column=0, padx=0, pady=0, sticky="NSEW")
+            self.scanWin.bind("<<array_scanned>>",
+                              lambda event : self._on_scan_array(event))
+        
+    def _on_scan_array(self, event=None):
+        """Load the latest scan of the antenna plate."""
+        
+        # Load the custom array file into the observation manager
+        tmpFile = "arrays/custom.config"
+        self.obsManager._load_one_array(tmpFile)
+        
+        # Append to the list of available array configurations
+        vals = list(self.obsManager.arrsAvailable.values())[-1]
+        configLst = zip([vals["telescope"]],
+                        [vals["config"]])
+        self.selector.configInTab.insert_rows(configLst,
+                                              ("Telescope", "Array"))
+        
+        # Clean up
+        os.remove(tmpFile)
+        
         
 #-----------------------------------------------------------------------------#
 class ArraySelector(ttk.Frame):
@@ -626,8 +665,14 @@ class ArraySelector(ttk.Frame):
         self.configInTab = ScrolledTreeTab(self,
                                            virtEvent="<<config_in_selected>>")
         self.configInTab.name_columns(("Telescope", "Array"))
-        self.configInTab.grid(column=4, row=0, columnspan=1, rowspan=6,
+        self.configInTab.grid(column=4, row=0, columnspan=1, rowspan=5,
                               padx=5, pady=5, sticky="NSEW")
+        
+        # Scan array button
+        self.scanBtn = ttk.Button(self, text="Scan Array Model", width=20,
+                    command=lambda: self.event_generate("<<show_scanwin>>"))
+        self.scanBtn.grid(column=4, row=5, columnspan=1,
+                          padx=5, pady=5, sticky="EW" ) 
         
         # Hour angle slider
         self.haLab = ttk.Label(self, text="Hour Angle Range (hours):")
@@ -707,6 +752,303 @@ class ArraySelector(ttk.Frame):
         
         self.configOutTab.clear_entries()   
         self.event_generate("<<selection_changed>>")
+
+        
+#-----------------------------------------------------------------------------#
+class ArrayScanner(ttk.Frame):
+    """Interface to scan the physical model of the array using webcam 2."""
+
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
+        self.X_m = None
+        self.Y_m = None
+        self.shape = None
+        self.doFlat = None
+        
+        # Set the expansion properties
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+
+        # Scanner settings
+        self.scanFrm = ttk.Labelframe(self, text=" Scanner Settings ")
+        self.scanFrm.grid(column=0, row=0, padx=5, pady=5, sticky="NSEW")
+        # Resolution
+        self.resLab = ttk.Label(self.scanFrm, text="Resolution:")
+        self.resLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.resX = tk.StringVar()
+        self.resY = tk.StringVar()
+        self.resX.set("1280")
+        self.resY.set("800")
+        self.resXEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.resX)
+        self.resXEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        self.resYEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.resY)
+        self.resYEnt.grid(column=2, row=1, padx=5, pady=5, sticky="EW")
+        # Crop size
+        self.cropLab = ttk.Label(self.scanFrm, text="Crop Size:")
+        self.cropLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
+        self.cropX = tk.StringVar()
+        self.cropY = tk.StringVar()
+        self.cropX.set("40")
+        self.cropY.set("40")
+        self.cropXEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.cropX)
+        self.cropXEnt.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
+        self.cropYEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.cropY)
+        self.cropYEnt.grid(column=2, row=2, padx=5, pady=5, sticky="EW")
+        # Smoothing kernel
+        self.kernLab = ttk.Label(self.scanFrm, text="Kernel Size:")
+        self.kernLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
+        self.kernSize = tk.StringVar()
+        self.kernSize.set("51")
+        self.kernEnt = ttk.Entry(self.scanFrm, width=5,
+                                 textvariable=self.kernSize)
+        self.kernEnt.grid(column=1, row=3, columnspan=2, padx=5, pady=5,
+                          sticky="EW")
+        # Dettection threshold
+        self.sigmaLab = ttk.Label(self.scanFrm, text="Threshold (sigma):")
+        self.sigmaLab.grid(column=0, row=4, padx=5, pady=5, sticky="E")
+        self.sigma = tk.StringVar()
+        self.sigma.set("3")
+        self.sigmaEnt = ttk.Entry(self.scanFrm, width=5,
+                                  textvariable=self.sigma)
+        self.sigmaEnt.grid(column=1, row=4, columnspan=2, padx=5, pady=5,
+                          sticky="EW")
+        # Min number pixels in island
+        self.minPixLab = ttk.Label(self.scanFrm, text="Min # Pixels:")
+        self.minPixLab.grid(column=0, row=5, padx=5, pady=5, sticky="E")
+        self.minPix = tk.StringVar()
+        self.minPix.set("100")
+        self.minPixEnt = ttk.Entry(self.scanFrm, width=5,
+                                   textvariable=self.minPix)
+        self.minPixEnt.grid(column=1, row=5, columnspan=2, padx=5, pady=5,
+                          sticky="EW")
+        # Flat Field button
+        self.flatBtn = ttk.Button(self.scanFrm, text="Flat Field", width=20,
+                                  command=self._handler_flat_button)
+#        self.flatBtn.grid(column=0, row=6, columnspan=3, padx=5, pady=5,
+#                          sticky="SEW" )
+        
+        # Scan button
+        self.scanBtn = ttk.Button(self.scanFrm, text="Scan Array", width=20,
+                                  command=self._handler_scan_button)
+        self.scanBtn.grid(column=0, row=7, columnspan=3, padx=5, pady=5,
+                          sticky="SEW" )
+        self.scanFrm.columnconfigure(0, weight=1)
+        self.scanFrm.rowconfigure(6, weight=1)
+
+        # Array settings
+        self.arrFrm = ttk.Labelframe(self, text=" Custom Array Settings ")
+        self.arrFrm.grid(column=0, row=1, padx=5, pady=5, sticky="NSEW")
+        # Telescope name
+        self.myScopeLab = ttk.Label(self.arrFrm, text="Telescope Name:")
+        self.myScopeLab.grid(column=0, row=0, padx=5, pady=5, sticky="E")
+        self.myScope = tk.StringVar()
+        self.myScope.set("Custom_1")
+        self.myScopeEnt = ttk.Entry(self.arrFrm, width=20, state="disabled",
+                                    textvariable=self.myScope)
+        self.myScopeEnt.grid(column=1, row=0, padx=5, pady=5, sticky="EW")
+        # Array config
+        self.myArrayLab = ttk.Label(self.arrFrm, text="Array Name:")
+        self.myArrayLab.grid(column=0, row=1, padx=5, pady=5, sticky="E")
+        self.myArray = tk.StringVar()
+        self.myArray.set("Array")
+        self.myArrayEnt = ttk.Entry(self.arrFrm, width=10,
+                                    textvariable=self.myArray)
+        self.myArrayEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        # Latitude
+        self.myLatLab = ttk.Label(self.arrFrm, text="Latitude (deg):")
+        self.myLatLab.grid(column=0, row=2, padx=5, pady=5, sticky="E")
+        latLst = [str(x) for x in range(90, -91, -10)]
+        self.myLat = tk.StringVar()
+        self.myLatComb = ttk.Combobox(self.arrFrm, textvariable=self.myLat,
+                                      values=latLst, width=10)        
+        self.myLatComb.current(11)
+        self.myLatComb.grid(column=1, row=2, padx=5, pady=5, sticky="EW")
+        # Antenna diameter
+        self.myAntDiamLab = ttk.Label(self.arrFrm, text=u"Antenna \u0398 (m):")
+        self.myAntDiamLab.grid(column=0, row=3, padx=5, pady=5, sticky="E")
+        dLst = ["22"]
+        self.myAntDiam = tk.StringVar()
+        self.myAntDiamComb = ttk.Combobox(self.arrFrm, width=12, values=dLst,
+                                         textvariable=self.myAntDiam)
+        self.myAntDiamComb.current(0)
+        self.myAntDiamComb.grid(column=1, row=3, padx=5, pady=5, sticky="EW")
+        # Plate scale
+        self.plateScaleLab = ttk.Label(self.arrFrm, text=u"Array Scale (m):")
+        self.plateScaleLab.grid(column=0, row=4, padx=5, pady=5, sticky="E")
+        self.plateScale = tk.StringVar()
+        self.plateScale.set("2000.0")
+        self.plateScaleEnt = ttk.Entry(self.arrFrm, width=12,
+                                       textvariable=self.plateScale)
+        self.plateScaleEnt.grid(column=1, row=4, padx=5, pady=5, sticky="EW")
+        # Save button
+        self.saveBtn = ttk.Button(self.arrFrm, text="Save Array", width=20,
+                                  command=self._handler_save_button)
+        self.saveBtn.configure(state="disabled")
+        self.saveBtn.grid(column=0, row=5, columnspan=2, padx=5, pady=5,
+                          sticky="SEW" )
+        # Show control window
+        self.showBtn = ttk.Button(self.arrFrm, text = "Show Control Window",
+                                  width=20, command=self._show_control_window)
+        self.showBtn.grid(column=0, row=6,  columnspan=3, padx=5, pady=5,
+                          sticky="SEW")
+        self.arrFrm.columnconfigure(0, weight=1)
+        self.arrFrm.rowconfigure(5, weight=1)
+
+        # Figure showing the scan of the antenna models
+        self.fig = Figure(figsize=(8.0, 7.0), facecolor=bgColour)
+        self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas = self.figCanvas.get_tk_widget()
+        self.canvas.configure(highlightthickness=0)
+        self.canvas.configure(background=bgColour)
+        self.canvas.grid(column=1, row=0, columnspan=1, rowspan=2,
+                         padx=0, pady=0, sticky="NSEW")
+        self.ax = self.fig.add_subplot(111)
+        plt.setp(self.ax.get_yticklabels(), visible=False)
+        plt.setp(self.ax.get_xticklabels(), visible=False)
+
+    def _handler_scan_button(self):
+
+        # Capture an image of the array via webcam 2
+        cam = cv2.VideoCapture()
+        #cam.open(1)
+        cam.open(0)
+        cam.set(3, int(self.resX.get()))
+        cam.set(4, int(self.resX.get()))
+        for i in range(10):
+            success, img = cam.read()
+        cam.release()
+        if success:
+
+            # Resize the image to make it easier to manage
+            img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+
+            # Save scan to a png file
+            cv2.imwrite("arrays/scan.png", img)
+            
+            # Detect the islands in the image
+            imgName = "arrays/scan.png"
+            if self.doFlat:
+                flatImgName = "arrays/scan.png"
+            else:
+                flatImgName = None
+            self.X_m, self.Y_m, self.shape = \
+                scan_to_pixcoords("arrays/scan.png",
+                                  eSize=float(self.kernSize.get()),
+                                  threshold_sigma=float(self.sigma.get()),
+                                  minPix=int(self.minPix.get()),
+                                  cropX=img.shape[1]-int(self.cropX.get()),
+                                  cropY=img.shape[0]-int(self.cropY.get()),
+                                  flatImgName = flatImgName, 
+                                  ax=self.ax)
+
+            # Show the scanned figure and allow saving
+            self.figCanvas.draw()
+
+            # Enable/disable saving
+            if len(self.X_m)>0:
+                self.saveBtn.configure(state="enabled")
+            else:
+                self.saveBtn.configure(state="disabled")
+    
+    def _handler_flat_button(self):
+
+        # Capture an image of the array via webcam 2
+        cam = cv2.VideoCapture()
+        cam.open(1)
+        cam.set(3, int(self.resX.get()))
+        cam.set(4, int(self.resX.get()))
+        for i in range(10):
+            success, img = cam.read()
+        cam.release()
+        if success:
+            # Resize the image to make it easier to manage
+            img = cv2.resize(img, (0,0), fx=0.5, fy=0.5)
+
+            # Save scan to a png file
+            cv2.imwrite("arrays/flat.png", img)
+            self.doFlat = True
+            
+    def _handler_save_button(self):
+        
+        # Write a temporary array definition file
+        tmpFile = "arrays/custom.config"
+        write_arrayfile(tmpFile,
+                        X_m=self.X_m,
+                        Y_m=self.Y_m,
+                        Nx=self.shape[-1],
+                        Ny=self.shape[-2],
+                        scale_m=float(self.plateScale.get()),
+                        telescope=self.myScope.get(),
+                        config=self.myArray.get(),
+                        latitude_deg=float(self.myLat.get()),
+                        diameter_m=float(self.myAntDiam.get()))
+
+        # Increment the number of the telescope
+        pre, i = self.myScope.get().rsplit("_")
+        self.myScope.set(pre + "_" + str(int(i)+1))
+        self.event_generate("<<array_scanned>>")
+
+    def _show_control_window(self):
+        """Set focus back to the main control window."""
+        
+        root.focus_force()
+        root.lift()
+
+        
+#-----------------------------------------------------------------------------#
+class EmailPoster(ttk.Frame):
+    """Interface to show a poster image and email it to the user."""
+
+    def __init__(self, parent, bgColour=None, *args, **kwargs):
+        ttk.Frame.__init__(self, parent, *args, **kwargs)
+        self.parent = parent
+        if bgColour is None:
+            bgColour = ttk.Style().lookup("TFrame", "background")
+
+        # Create the blank figure canvas and grid its tk canvas
+        self.fig = Figure(figsize=(13.0, 8.0), facecolor="black")
+        self.figCanvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas = self.figCanvas.get_tk_widget()
+        self.canvas.configure(highlightthickness=0)
+        self.canvas.configure(background=bgColour)
+        self.canvas.grid(column=0, row=0, columnspan=4, padx=0, pady=0,
+                         sticky="NSEW")
+        
+        # Add the email panel
+        self.emailLab = ttk.Label(self, text="Enter E-mail Address:")
+        self.emailLab.grid(column=0, row=1, padx=5, pady=5, sticky="W")
+        self.email = tk.StringVar()
+        self.emailEnt= ttk.Entry(self, width=100, textvariable=self.email)
+        self.emailEnt.grid(column=1, row=1, padx=5, pady=5, sticky="EW")
+        self.emailBtn = ttk.Button(self, text="Send Email", width=20,
+                                   command=self._handler_email_button)
+        self.emailBtn.grid(column=2, row=1, padx=5, pady=5,
+                          sticky="E" )
+        self.closeBtn = ttk.Button(self, text = "Close", width=20,
+                                   command=self._close)
+        self.closeBtn.grid(column=3, row=1, padx=5, pady=5, sticky="E")
+
+        # Set the expansion properties
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+        
+    def _handler_email_button(self):
+        print("EMAIL!")
+        pass
+
+    def _close(self):
+        """Set focus back to the main control window."""
+        self.parent.destroy()
+        root.focus_force()
+        root.lift()
 
 
 #-----------------------------------------------------------------------------#

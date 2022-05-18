@@ -14,45 +14,16 @@ layouts.
 
 ## Installation:
 
-The Friendly VRI is written in Python to work with both Python 2.7.x
-and 3.x. You will need the following modules installed:
+Click on the 'View on GitHub' link at the top of the page and then the
+'Clone or download' button to fetch the package code. The Friendly VRI
+is written in Python to work with both Python 2.7.x and 3.x. The
+recommended way to install is via an Anaconda environment. Run the following command to create an environment called ```vri```:
 
-* numpy
-* matplotlib
-* pil *or* pillow
-* tkinter
-* opencv (optional - enables web-cam image capture)
+```conda env create -f environment.yml```.
 
-If you use the default system python interpreter, these can usually be
-installed from the command line on Linux or Mac OS X by executing the
-command
+Once all required modules are installed, activate the environment:
 
-```sudo pip install <module_name>```.
-
-If you are running Anaconda scientific python the command is
-
-```conda install <module_name>```.
-
-Once all required modules are installed, click on the 'View on GitHub'
-link at the top of the page and then the 'Clone or download' button.
-
-##### A note about opencv on Mac OS X:
-
-The default installation of opencv on Anaconda for Mac OS X seems to
-be broken (causes a segmentation fault). Some folk on the internet
-have reported success installing a working opencv module using the
-command
-
-```conda install -c https://conda.binstar.org/menpo opencv```.
-
-If this works for you and you want to enable the web-cam
-capture button for Mac OS X, comment out the following lines in the
-'vriTk.py' code:
-
-```python
-if sys.platform=="darwin":
-    hasCV2 = False
-```
+```conda activate vri```
 
 
 ## Usage
@@ -130,6 +101,6 @@ be directed to 'cormac.purcell (at) mq.edu.au'.
 
 ## Licence
 
-Copyright (c) 2017 Cormac R. Purcell and Roy Truelove.
+Copyright (c) 2017 - 2022 Cormac R. Purcell and Roy Truelove.
 
 Released under the [MIT licence](LICENCE.txt).

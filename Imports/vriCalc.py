@@ -5,18 +5,17 @@
 #                                                                             #
 # PURPOSE:  Back-end for a virtual interferometer application.                #
 #                                                                             #
-# REQUIRED: Requires numpy, tkinter, matplotlib and PIL/PILLOW                #
+# REQUIRED: Requires numpy and pillow                                         #
 #                                                                             #
 # CREDITS:  Cormac R. Purcell (cormac.purcell at mq.edu.au)                   #
-#           Roy Truelove (Macquarie University)                               #
-#                                                                             #
-# MODIFIED: 12-May-2017 by C. Purcell                                         #
+#           Roy Truelove      (Macquarie University)                          #
 #                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 #  observationManager (class)                                                 #
 #      _reset_uv_vars       ... reset variables associated with uv-coverage   #
 #      _reset_model_vars    ... reset variables associated with model image   #
+#      _load_one_array      ... load a single array configuration             #
 #      _load_all_arrays     ... create the table of available array configs   #
 #      get_available_arrays ... list the available arrays                     #
 #      select_array         ... select an array config & HA-range             #
@@ -33,6 +32,7 @@
 #      invert_observation   ... apply the uv-coverage to the model image      #
 #      get_status           ... set the status flags of each step             #
 #      get_array_params     ... get the parameters of an available array      #
+#      get_baseline_lengths ... get the baseline lengths for an array         #
 #      calc_elevation_curve ... calculate elevation curves                    #
 #                                                                             #
 #  antArray (class)                                                           #
@@ -48,7 +48,7 @@
 #                                                                             #
 # The MIT License (MIT)                                                       #
 #                                                                             #
-# Copyright (c) 2017 Cormac R. Purcell and Roy Truelove                       #
+# Copyright (c) 2017 - 2022 Cormac R. Purcell and Roy Truelove                #
 #                                                                             #
 # Permission is hereby granted, free of charge, to any person obtaining a     #
 # copy of this software and associated documentation files (the "Software"),  #
@@ -204,6 +204,23 @@ class observationManager:
         self.obsFFTarr = None
         self.obsImgArr = None
         
+    def _load_one_array(self, arrayFile):
+        """Load a single ASCII array file into memory."""
+        
+        # Create an antArray object for each and store in a dictionary
+        ar = antArray(arrayFile)
+        if ar.telescope is not None:
+            key = ar.telescope + "_" + ar.config
+            value = {"row": len(self.arrsAvailable),
+                     "telescope": ar.telescope,
+                     "config": ar.config,
+                     "antArray": ar}
+            self.arrsAvailable[key] = value
+
+            # Populate the telescope lookup tables
+            self.telescopeLatDict[ar.telescope] = ar.latitude_deg
+            self.telescopeDiamDict[ar.telescope] = ar.diameter_m
+        
     def _load_all_arrays(self, arrayDir, pattern="*.config"):
         """Read and parse each of the ASCII files defining the antenna
         coordinates and telescope parameters (telescope, configuration, 
@@ -219,18 +236,7 @@ class observationManager:
             arrayFile = arrayFileLst[i]
             
             # Create an antArray object for each and store in a dictionary
-            ar = antArray(arrayFileLst[i])
-            if ar.telescope is not None:
-                key = ar.telescope + "_" + ar.config
-                value = {"row": i,
-                         "telescope": ar.telescope,
-                         "config": ar.config,
-                         "antArray": ar}
-                self.arrsAvailable[key] = value
-
-                # Populate the telescope lookup tables
-                self.telescopeLatDict[ar.telescope] = ar.latitude_deg
-                self.telescopeDiamDict[ar.telescope] = ar.diameter_m
+            self._load_one_array(arrayFileLst[i])
             
         if self.verbose:
             print("Successfully loaded %d array configurations." 
@@ -364,6 +370,7 @@ class observationManager:
             Source declination (deg)  =   20.0"""
         
         self.freq_Hz = float(freq_MHz)*1e6
+        self.lambda_m = C/self.freq_Hz
         self.dec_deg = float(dec_deg)
 
         # Set the downstream status flags
@@ -773,7 +780,25 @@ class observationManager:
             d["x"] = antArrayRow.eastArr_m.copy()
             d["y"] = antArrayRow.northArr_m.copy()
         return d
-        
+    
+    def get_baseline_lengths(self, row=None, key=None, doKiloLam=True):
+        """Return the baseline lengths for an antenna array from one entry
+        in the 'arrsAvailable' dictionary. The query can take either a row
+        number or the key=['<telescope>_<configuration>']."""
+
+        if row is not None:
+            arrsAvailLst = od2list(self.arrsAvailable)
+            if row>=len(arrsAvailLst):
+                return None
+            lBase_m =  arrsAvailLst[row]["antArray"].lBase_m
+        if key is not None:
+            key = key.decode("utf-8")
+            if not key in self.arrsAvailable:
+                return None
+            antArrayRow = self.arrsAvailable[key]["antArray"]
+            lBase_m = antArrayRow.lBase_m
+        return lBase_m
+
     def calc_elevation_curve(self, telescope, haArr_hr=None):
         """Calculate the elevation curves for a telescope and the current
         source declination over a vector of hour-angles."""
