@@ -5,8 +5,6 @@
 #                                                                             #
 # PURPOSE:  Functions and classes for TK graphical elements.                  #
 #                                                                             #
-# MODIFIED: 14-Feb-2020 by C. Purcell                                         #
-#                                                                             #
 # CONTENTS:                                                                   #
 #                                                                             #
 #  ScrolledTreeTab     ... scrolled Treeview widget mimicking a table         #
@@ -16,6 +14,7 @@
 #  ScrolledListBox     ... listbox with scrollbars and convenience functions  #
 #  SingleFigFrame      ... canvas widget to display a matplotlib figure       #
 #  DoubleScale         ... double-handled slider to define a value range      #
+#  ImageBrowser        ... show images in a directory with a preview          #
 #                                                                             #
 #=============================================================================#
 #                                                                             #
@@ -42,6 +41,8 @@
 # DEALINGS IN THE SOFTWARE.                                                   #
 #                                                                             #
 #=============================================================================#
+import os
+import glob
 try:
     # Python 2.7x
     import Tkinter as tk
@@ -53,6 +54,7 @@ except Exception:
     from tkinter import ttk
     import tkinter.font as tkFont
 import numpy as np
+from PIL import Image, ImageTk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -973,3 +975,120 @@ class DoubleScale(ttk.Frame):
         if "right" in self.canvas.gettags(item):
             self.limitRight = value
             self.valueRight.set(valFmt)
+
+
+#-----------------------------------------------------------------------------#
+class ImageBrowser(ttk.Frame):    
+    
+    def __init__(self, parent, virtEvent="<<tab_row_selected>>", path=None,
+                 thumbSize=(300, 300), *args, **kw):
+        ttk.Frame.__init__(self, parent, *args, **kw)
+        self.parent = parent
+        if path is None:
+            path = os.getcwd()
+        self.path = path
+        self.thumbSize = thumbSize
+        self.filePath = None        
+        self.virtEvent = virtEvent
+
+        # Allowed filetypes (can be read by PIL)
+        self.FILETYPES = ['.bmp', '.dib', '.dcx', '.gif', '.im', '.jpg',
+                          '.jpe', '.jpeg', '.pcd', '.pcx', '.png', '.pbm',
+                          '.pgm', '.ppm', '.psd', '.tif', '.tiff', '.xbm', 
+                          '.xpm']
+        self.FILETYPES += [x.upper() for x in self.FILETYPES]
+        
+        # Create the directory box & browse button
+        self.dirFrm = ttk.Frame(self)
+        self.dirFrm.grid(column=0, row=0, columnspan=2, padx=0, pady=0,
+                         sticky="EW")
+        self.dirFrm.columnconfigure(1, weight=1)
+        self.dirLab = ttk.Label(self.dirFrm, text="Image Directory: ")
+        self.dirLab.grid(row=0, column=0, padx=5, pady=5, sticky="W")
+        self.dirName = tk.StringVar()
+        self.dirEnt = ttk.Entry(self.dirFrm, width=50,
+                                textvariable=self.dirName)
+        self.dirEnt.grid(row=0, column=1, padx=5, pady=5, sticky="EW")
+        self.dirEnt.bind('<Return>', self._load_dir)
+        self.browseBtn = ttk.Button(self.dirFrm, text="Browse",
+                                    command=self._browse_dir)
+        self.browseBtn.grid(row=0, column=2, padx=5, pady=5, sticky="E")
+        
+        # Create the listbox and the scrollbars
+        self.files = ScrolledListBox(self)
+        self.files.grid(column=0, row=1, sticky="NSW")
+        self.files.listBox.bind('<ButtonRelease-1>', self._load_preview)
+
+        # Create the image preview pane
+        self.imgFrm = ttk.Labelframe(self, text=" Preview ")
+        self.imgFrm.grid(column=1, row=1, padx=(10,5), pady=0, sticky="NSWE")
+        self.imgThumb = None       # Image handle to prevent garbage collection
+        self.imgLab = ttk.Label(self.imgFrm, image=self.imgThumb, border=2)
+        self.imgLab.grid(row=0, column=0, padx=5, pady=5),# sticky="NSEW")
+        self.imgFrm.columnconfigure(0, weight=1)
+        self.imgFrm.rowconfigure(0, weight=1)
+
+        # Set the expansion properties
+        self.rowconfigure(1, weight=1)
+        self.columnconfigure(1, weight=1)
+        
+        # Populate the file list
+        if os.path.exists(self.path):
+            self.dirName.set(self.path)
+        self._load_dir()
+                
+    def _browse_dir(self):
+        imgPath = tkFileDialog.askdirectory(initialdir=self.dirName.get(),
+                                        parent=self,
+                                        title='Select a new image directory',
+                                        mustexist=True)
+        if imgPath:
+            self.dirName.set(imgPath)
+            self._load_dir()
+    
+    def _load_dir(self, *args):
+        dn = os.path.join(self.dirName.get(), '*')
+        self.files.clear()
+        
+        # Find the files in the given directory, insert into listbox
+        for f in glob.iglob(dn):
+            if os.path.splitext(f)[1] in self.FILETYPES:
+                self.files.insert(os.path.basename(f))
+        
+    def _load_preview(self, event):
+        item = self.files.listBox.curselection()
+        fn = self.files.listBox.get(item)
+        imagePath = os.path.join(self.dirName.get(), fn)
+
+        # Get the current size of the preview frame
+        self.thumbSize = (self.imgFrm.winfo_width(), self.imgFrm.winfo_height())
+        
+        #try:
+        if True:
+            imgPIL = Image.open(imagePath)
+            imgPIL.thumbnail(self.thumbSize, Image.ANTIALIAS)
+            if imgPIL.mode == '1':
+                self.imgThumb = ImageTk.BitmapImage(imgPIL)
+            else:
+                self.imgThumb = ImageTk.PhotoImage(imgPIL)
+            self.imgLab.configure(image=self.imgThumb)
+            self.imagePath = imagePath
+            self.event_generate(self.virtEvent)
+            
+        #except Exception:
+        #    
+        #    # Colour failed files in red
+        #    self.files.listBox.itemconfig(item, background='red',
+        #                                  selectbackground='red')
+
+    def display_image(self, imagePath):
+            imgPIL = Image.open(imagePath)
+            imgPIL.thumbnail(self.thumbSize, Image.ANTIALIAS)
+            if imgPIL.mode == '1':
+                self.imgThumb = ImageTk.BitmapImage(imgPIL)
+            else:
+                self.imgThumb = ImageTk.PhotoImage(imgPIL)
+            self.imgLab.configure(image=self.imgThumb)
+            self.imagePath = imagePath
+            self.event_generate(self.virtEvent)
+
