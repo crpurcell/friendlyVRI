@@ -1066,7 +1066,7 @@ class ImageBrowser(ttk.Frame):
         #try:
         if True:
             imgPIL = Image.open(imagePath)
-            imgPIL.thumbnail(self.thumbSize, Image.ANTIALIAS)
+            imgPIL.thumbnail(self.thumbSize, Image.Resampling.LANCZOS)
             if imgPIL.mode == '1':
                 self.imgThumb = ImageTk.BitmapImage(imgPIL)
             else:
@@ -1083,7 +1083,7 @@ class ImageBrowser(ttk.Frame):
 
     def display_image(self, imagePath):
             imgPIL = Image.open(imagePath)
-            imgPIL.thumbnail(self.thumbSize, Image.ANTIALIAS)
+            imgPIL.thumbnail(self.thumbSize, Image.Resampling.LANCZOS)
             if imgPIL.mode == '1':
                 self.imgThumb = ImageTk.BitmapImage(imgPIL)
             else:
